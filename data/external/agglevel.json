@@ -1,0 +1,18 @@
+{
+    "national":1,
+    "docile":2,
+    "sex":3,
+    "race":4,
+    "state":5,
+    "decile_sex":6,
+    "decile_race":7,
+    "decile_state":8,
+    "sex_race":9,
+    "sex_state":10,
+    "race_state":11,
+    "decile_sex_race":12,
+    "decile_sex_state":13,
+    "decile_race_state":14,
+    "sex_race_state":15,
+    "decile_sex_race_stae":16
+}

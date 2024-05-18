@@ -1,0 +1,9 @@
+{
+    "hispanic":0,
+    "white":1,
+    "black":2,
+    "native":3,
+    "asian":4,
+    "other":5,
+    "aggr":-1
+}
