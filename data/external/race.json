@@ -4,6 +4,5 @@
     "black":2,
     "native":3,
     "asian":4,
-    "other":5,
-    "aggr":-1
+    "other":5
 }
