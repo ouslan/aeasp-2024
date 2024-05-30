@@ -163,6 +163,8 @@ data/processed/
 data/raw/
 data/interim/
 data/external/
+data/shape_files/
+notebooks/
 #force to keep the pnb.csv file in data/external
 
 
