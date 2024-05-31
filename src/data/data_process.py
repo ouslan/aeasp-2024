@@ -26,8 +26,9 @@ class DataClean:
         
 
     def graph(self, year):
-        mov = self.df.group_by("state", "year").agg(pl.col("meqinc").mean())
+        mov = self.df.group_by("state", "year").agg(pl.col("meqinc").mean().alias("avg_meqinc"))
         mov = mov.to_pandas()
         gdf = pd.merge(mov, self.shp, on="state", how="inner")
         gdf = gdf[gdf["year"] == year].reset_index().drop("index", axis=1)
+        gdf = gpd.GeoDataFrame(gdf, geometry="geometry")
         return gdf

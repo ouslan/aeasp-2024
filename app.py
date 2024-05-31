@@ -1,60 +1,48 @@
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, Input, Output, callback
+from src.data.data_process import DataClean
 import plotly.express as px
-import geopandas as gpd
-import pandas as pd
-import polars as pl
 
 app = Dash(__name__)
 
-df = gpd.read_file(open("dev.geojson"))
-df2 = pl.read_csv("data/raw/movs_st_main2005.csv", ignore_errors=True)
-
-
-fig = px.choropleth_mapbox(df,
-                           geojson=df.geometry,
-                           locations=df.index,
-                           color="avg_meqinc",
-                           center={"lat": 37.0902, "lon": -95.7129},
-                           mapbox_style="carto-positron",
-                           hover_name=df.NAME,
-                           zoom=2.5)
+data = DataClean()
+df = data.graph(2016)
 
 app.layout = html.Div(children=[
     html.H1(children='Mobility, Opportunity, and Volatility Statistics (MOVS)'),
 
     html.Div(children='''
-        Income and Household Mesures of Working-Age Adults:2005-2015
+        Income and Household Measures of Working-Age Adults: 2005-2015
     '''),
 
-    html.Br(),
-    html.Label('Sex'),
-        dcc.Dropdown(['All', 'Male', 'Female'], "All"),
- 
-    html.Br(),
-    html.Label('Race/Ethnicity'),
-        dcc.Dropdown(['All', 'Hispanic, any race', 'White non-Hispanic', 'American-Indian and Alaska Native, Non-Hispanic', 'Asian, Non-Hispanic', 'Some other Race'], multi=True),
-
-    html.Br(),
-    html.Label('Income Decile in 2005'),
-        dcc.Dropdown(['All', 'First (lowest income decile)', 'Second', "third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Nineth", "Tenth (highest income decile)"], "All"),
-    
-    html.Br(),
     dcc.Slider(
-        df2['year'].min(),
-        df2['year'].max(),
+        min=data.df['year'].min(),
+        max=data.df['year'].max(),
         step=None,
-        id='year--slider',
-        value=df2['year'].max(),
-        marks={str(year): str(year) for year in df2['year'].unique()},
+        value=data.df['year'].max(),
+        marks={str(year): str(year) for year in data.df['year'].unique()},
+        id="year-slider"
     ),
     
-    html.Br(),
     dcc.Graph(
-        id='example-graph',
-        figure=fig,
+        id='map-graph',
         style={'width': '150vh', 'height': '90vh'}
     ),
 ])
 
+@app.callback(
+    Output('map-graph', 'figure'),
+    [Input('year-slider', 'value')]
+)
+def update_figure(selected_year):
+    df = data.graph(selected_year)  # Update dataframe based on selected year
+    fig = px.choropleth_mapbox(df,
+                                geojson=df.geometry,
+                                locations=df.index,
+                                color="avg_meqinc",
+                                center={"lat": 37.0902, "lon": -95.7129},
+                                mapbox_style="carto-positron",
+                                zoom=2.5)
+    return fig
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=True)
