@@ -1,4 +1,7 @@
 numpy==1.26.4
 pandas==2.2.2
 polars==0.20.26
-ipykernel==6.29.3
+dash==2.17.0
+plotly-geo==1.0.0
+geoarrow-rust-core==0.2.0
+pyogrio==0.8.0
