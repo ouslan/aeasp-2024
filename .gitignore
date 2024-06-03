@@ -159,11 +159,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 # ignore tfiles inside the data folder
-data/processed/
-data/raw/
-data/interim/
-data/external/
-data/shape_files/
+data/
 notebooks/
 #force to keep the pnb.csv file in data/external
 
