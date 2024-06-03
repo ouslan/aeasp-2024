@@ -30,6 +30,8 @@ class DataClean:
         if not os.path.exists("data/raw/state_code.parquet"):
             self.codes = self.df.select(pl.col("state_abbr").str.to_lowercase().unique())
             self.codes = self.codes.filter(pl.col("state_abbr") != "us")
+            self.codes = self.codes.join(self.df.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
+            self.codes = self.codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
             self.codes.write_parquet("data/external/state_code.parquet")
         else:
             self.codes = pl.read_parquet("data/external/state_code.parquet")
@@ -45,3 +47,13 @@ class DataClean:
         gdf = gdf[gdf["year"] == year].reset_index().drop("index", axis=1)
         gdf = gpd.GeoDataFrame(gdf, geometry="geometry")
         return gdf
+
+    def retreve_shps(self):
+        for state in self.codes["fips"]:
+            url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
+            file_name = f"data/shape_files/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
+            if not os.path.exists(file_name):
+                print(state)
+                self.download_file(url, file_name)
+            else:
+                continue
