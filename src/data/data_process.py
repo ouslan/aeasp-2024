@@ -1,3 +1,5 @@
+from geoarrow.rust.core import read_pyogrio, to_geopandas
+from geoarrow.rust.core import from_shapely
 from urllib.request import urlretrieve
 import geopandas as gpd
 import polars as pl
@@ -36,7 +38,19 @@ class DataClean:
         else:
             self.codes = pl.read_parquet("data/external/state_code.parquet")
 
-        
+        #creating the census block Dataset
+        empty_df = [
+            pl.Series("STATEFP20", [], dtype=pl.String),
+            pl.Series("TRACTCE20", [], dtype=pl.String),
+            pl.Series("lon", [], dtype=pl.Float64),
+            pl.Series("lat", [], dtype=pl.Float64),
+        ]
+        if not os.path.exists("data/processed/blocks.parquet"):
+            self.blocks = pl.DataFrame(empty_df).clear()
+            self.retreve_shps()
+        else:
+            self.blocks = pl.read_parquet("data/processed/blocks.parquet")
+
     def download_file(self, url, filename):
         if not os.path.exists(f"{os.getcwd}{filename}"):
             urlretrieve(url, filename)
@@ -51,12 +65,26 @@ class DataClean:
 
     def retreve_shps(self):
         for state in self.codes["fips"]:
+            print(f"processing {state}")
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             file_name = f"data/shape_files/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             if not os.path.exists(file_name):
                 self.download_file(url, file_name)
-            with zipfile.ZipFile(file_name, 'r') as zip_ref:
-                zip_ref.extractall('data/shape_files')      
+            table = read_pyogrio(file_name)
+            tmp = to_geopandas(table)
+            # tmp = tmp.to_crs("EPSG:3857")
+            tmp_shp = tmp[["STATEFP20", "TRACTCE20", "geometry"]].copy()
+            
+            tmp_shp["centroid"] = tmp_shp.centroid
+            tmp_shp['lon'] = tmp_shp.centroid.x
+            tmp_shp['lat'] = tmp_shp.centroid.y
+            tmp_block = pl.from_pandas(tmp_shp[["STATEFP20", "TRACTCE20", "lon", "lat"]])
+            
+            self.blocks = pl.concat([self.blocks, tmp_block], how="vertical")
+            print(f"finished procecing {state}")
+            #os.remove(file_name)
+        self.blocks.write_parquet("data/processed/blocks.parquet")
+
     
     def make_us_shp(self, path):
         table = read_pyogrio(path)
