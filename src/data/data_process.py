@@ -56,10 +56,7 @@ class DataClean:
             if not os.path.exists(file_name):
                 self.download_file(url, file_name)
             with zipfile.ZipFile(file_name, 'r') as zip_ref:
-                zip_ref.extractall('data/shape_files')
-            
-            
-            
+                zip_ref.extractall('data/shape_files')      
     
     def make_us_shp(self, path):
         table = read_pyogrio(path)
