@@ -35,6 +35,7 @@ class DataClean:
             self.codes.write_parquet("data/external/state_code.parquet")
         else:
             self.codes = pl.read_parquet("data/external/state_code.parquet")
+
         
     def download_file(self, url, filename):
         if not os.path.exists(f"{os.getcwd}{filename}"):
@@ -53,7 +54,14 @@ class DataClean:
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             file_name = f"data/shape_files/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             if not os.path.exists(file_name):
-                print(state)
                 self.download_file(url, file_name)
-            else:
-                continue
+            with zipfile.ZipFile(file_name, 'r') as zip_ref:
+                zip_ref.extractall('data/shape_files')
+            
+            
+            
+    
+    def make_us_shp(self, path):
+        table = read_pyogrio(path)
+        gdf = to_geopandas(table)
+        
