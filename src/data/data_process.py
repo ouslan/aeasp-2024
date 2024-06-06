@@ -18,15 +18,14 @@ class DataClean:
         self.df = pl.read_csv(file_name, ignore_errors=True)
         
         # verify shape file exists & load into geopandas dataframe
-        if not os.path.exists("data/shape_files/cb_2018_us_state_500k.shp"):
-            self.download_file("https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip", "data/shape_files/tmp.zip")
-            with zipfile.ZipFile("data/shape_files/tmp.zip", 'r') as zip_ref:
-                zip_ref.extractall('data/shape_files')
-        self.shp = gpd.read_file("data/shape_files/cb_2018_us_state_500k.shp")
+        if not os.path.exists("data/shape_files/states.zip"):
+            self.download_file("https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip", "data/shape_files/states.zip")
+        table = read_pyogrio("data/shape_files/states.zip")
+        self.shp = to_geopandas(table)
         self.shp.rename({"GEOID": "state"}, axis=1, inplace=True)
         self.shp.rename({"NAME": "state_name"}, axis=1, inplace=True)
-        self.shp["state"] = self.shp["state"].astype(int)  
-        self.shp = self.shp.to_crs("EPSG:3857")
+        self.shp["state"] = self.shp["state"].astype(int)
+        self.shp = self.shp.set_crs('epsg:3857')
 
         # verify state_code file exists & load into pandas dataframe
         if not os.path.exists("data/raw/state_code.parquet"):
@@ -64,29 +63,24 @@ class DataClean:
         return gdf
 
     def retreve_shps(self):
-        for state in self.codes["fips"]:
-            print(f"processing {state}")
-            url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
-            file_name = f"data/shape_files/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
-            if not os.path.exists(file_name):
+        if not os.path.exists("data/processed/blocks.parquet"):
+            for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
+                print(f"processing {name}, {state}")
+                url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
+                file_name = f"data/shape_files/{name}_{str(state).zfill(2)}.zip"
                 self.download_file(url, file_name)
-            table = read_pyogrio(file_name)
-            tmp = to_geopandas(table)
-            # tmp = tmp.to_crs("EPSG:3857")
-            tmp_shp = tmp[["STATEFP20", "TRACTCE20", "geometry"]].copy()
-            
-            tmp_shp["centroid"] = tmp_shp.centroid
-            tmp_shp['lon'] = tmp_shp.centroid.x
-            tmp_shp['lat'] = tmp_shp.centroid.y
-            tmp_block = pl.from_pandas(tmp_shp[["STATEFP20", "TRACTCE20", "lon", "lat"]])
-            
-            self.blocks = pl.concat([self.blocks, tmp_block], how="vertical")
-            print(f"finished procecing {state}")
-            #os.remove(file_name)
-        self.blocks.write_parquet("data/processed/blocks.parquet")
-
-    
-    def make_us_shp(self, path):
-        table = read_pyogrio(path)
-        gdf = to_geopandas(table)
-        
+                
+                table = read_pyogrio(file_name)
+                tmp = to_geopandas(table)
+                tmp = tmp.set_crs('epsg:3857')
+                tmp_shp = tmp[["STATEFP20", "TRACTCE20", "geometry"]].copy()
+                
+                tmp_shp["centroid"] = tmp_shp.centroid
+                tmp_shp['lon'] = tmp_shp.centroid.x
+                tmp_shp['lat'] = tmp_shp.centroid.y
+                tmp_block = pl.from_pandas(tmp_shp[["STATEFP20", "TRACTCE20", "lon", "lat"]])
+                
+                self.blocks = pl.concat([self.blocks, tmp_block], how="vertical")
+                print(f"finished procecing {state}")
+                #os.remove(file_name)
+            self.blocks.write_parquet("data/processed/blocks.parquet")
