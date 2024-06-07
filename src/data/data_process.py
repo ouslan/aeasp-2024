@@ -50,6 +50,39 @@ class DataClean:
         else:
             self.blocks = pl.read_parquet("data/processed/blocks.parquet")
 
+    def retreve_shps(self):
+        for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
+            print(f"processing {name}, {state}")
+            url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
+            file_name = f"data/shape_files/{name}_{str(state).zfill(2)}.zip"
+            self.download_file(url, file_name)
+            
+            tmp = gpd.read_file(file_name, engine="pyogrio")
+            tmp = tmp.set_crs('epsg:3857')
+            tmp_shp = tmp[["STATEFP20", "TRACTCE20", "geometry"]].copy()
+            
+            tmp_shp["centroid"] = tmp_shp.centroid
+            tmp_shp['lon'] = tmp_shp.centroid.x
+            tmp_shp['lat'] = tmp_shp.centroid.y
+            tmp_block = pl.from_pandas(tmp_shp[["STATEFP20", "TRACTCE20", "lon", "lat"]])
+            
+            self.blocks = pl.concat([self.blocks, tmp_block], how="vertical")
+            print(f"finished procecing {state}")
+            #os.remove(file_name)
+        self.blocks.write_parquet("data/processed/blocks.parquet")
+    
+    def retreve_lodes(self):
+        if not os.path.exists("data/processed/lodes.parquet"):
+            for state, name in self.codes.select(pl.col("state_abbr", "state_name")).rows():
+                for year in range(2009, 2020):
+                    url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state}/od/{state}_od_main_JT00_{year}.csv.gz"
+                    file_name = f"data/raw/lodes_{state}_{year}.csv.gz"
+                    try:
+                        self.download_file(url, file_name)
+                        print(f"finished dowloading {name}, {state}, {year}")
+                    except:
+                        print(f"failed to download {name}, {state}, {year}")
+ 
     def download_file(self, url, filename):
         if not os.path.exists(f"{os.getcwd}{filename}"):
             urlretrieve(url, filename)
@@ -61,26 +94,3 @@ class DataClean:
         gdf = gdf[gdf["year"] == year].reset_index().drop("index", axis=1)
         gdf = gpd.GeoDataFrame(gdf, geometry="geometry")
         return gdf
-
-    def retreve_shps(self):
-        if not os.path.exists("data/processed/blocks.parquet"):
-            for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
-                print(f"processing {name}, {state}")
-                url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
-                file_name = f"data/shape_files/{name}_{str(state).zfill(2)}.zip"
-                self.download_file(url, file_name)
-                
-                table = read_pyogrio(file_name)
-                tmp = to_geopandas(table)
-                tmp = tmp.set_crs('epsg:3857')
-                tmp_shp = tmp[["STATEFP20", "TRACTCE20", "geometry"]].copy()
-                
-                tmp_shp["centroid"] = tmp_shp.centroid
-                tmp_shp['lon'] = tmp_shp.centroid.x
-                tmp_shp['lat'] = tmp_shp.centroid.y
-                tmp_block = pl.from_pandas(tmp_shp[["STATEFP20", "TRACTCE20", "lon", "lat"]])
-                
-                self.blocks = pl.concat([self.blocks, tmp_block], how="vertical")
-                print(f"finished procecing {state}")
-                #os.remove(file_name)
-            self.blocks.write_parquet("data/processed/blocks.parquet")
