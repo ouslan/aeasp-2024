@@ -38,7 +38,7 @@ def update_figure(selected_year):
     fig = px.choropleth_mapbox(df,
                                 geojson=df.geometry,
                                 locations=df.index,
-                                color="avg_meqinc",
+                                color="avg_distance",
                                 center={"lat": 37.0902, "lon": -95.7129},
                                 mapbox_style="carto-positron",
                                 zoom=2.5)
