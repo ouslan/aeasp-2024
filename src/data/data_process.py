@@ -1,13 +1,11 @@
 from geoarrow.rust.core import read_pyogrio, to_geopandas
-from geoarrow.rust.core import from_shapely
+from geopy.distance import geodesic as gd
 from urllib.request import urlretrieve
 import geopandas as gpd
 import polars as pl
 import pandas as pd
 import numpy as np
-import zipfile
 import os 
-import json
 
 class DataClean:
 
@@ -61,6 +59,8 @@ class DataClean:
                     ]
             self.lodes = pl.DataFrame(empty_df).clear()
             #self.lodes = self.retreve_lodes()
+        else:
+            self.lodes = pl.read_parquet("data/processed/lodes.parquet")
 
     def retreve_shps(self):
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
@@ -136,8 +136,15 @@ class DataClean:
         df = df.join(origin, on="h_geocode", how="left")
         df = df.join(dest, on="w_geocode", how="left")
         df = df.with_columns(
-                        (np.sqrt((pl.col("h_lon")-pl.col("w_lon"))**2 + (pl.col("h_lat")-pl.col("w_lat"))**2)*pl.col("total_jobs")).alias("distance"))
+                            (6371.01 * np.arccos(
+                                                np.sin((pl.col("h_lat"))) * np.sin((pl.col("w_lat"))) + 
+                                                np.cos((pl.col("h_lat"))) * np.cos((pl.col("w_lat"))) * 
+                                                np.cos(((pl.col("h_lon")) - pl.col("w_lon")))
+                                                )
+                                                ).alias("distance")
+                        )
+        df = df.filter(pl.col("distance") != np.nan)
         df = df.select(pl.col("distance").sum().alias("total_distance"),
                    pl.col("total_jobs").sum().alias("total_jobs"))
-        df = df.select((pl.col("total_distance")/pl.col("total_jobs")).alias("avg_distance")).item()
-        return df
+        value = df.select((pl.col("total_distance")/pl.col("total_jobs")).alias("avg_distance")).item()
+        return value

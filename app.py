@@ -15,8 +15,8 @@ app.layout = html.Div(children=[
     '''),
 
     dcc.Slider(
-        min=data.df['year'].min(),
-        max=data.df['year'].max(),
+        min=data.lodes['year'].min(),
+        max=data.lodes['year'].max(),
         step=None,
         value=data.df['year'].max(),
         marks={str(year): str(year) for year in data.df['year'].unique()},
@@ -38,6 +38,7 @@ def update_figure(selected_year):
     fig = px.choropleth_mapbox(df,
                                 geojson=df.geometry,
                                 locations=df.index,
+                                hover_name=df.state_name,
                                 color="avg_distance",
                                 center={"lat": 37.0902, "lon": -95.7129},
                                 mapbox_style="carto-positron",
