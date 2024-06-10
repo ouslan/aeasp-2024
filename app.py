@@ -8,7 +8,7 @@ data = DataClean()
 df = data.graph(2016)
 
 app.layout = html.Div(children=[
-    html.H1(children='Mobility, Opportunity, and Volatility Statistics (MOVS)'),
+    html.H1(children='Average travel distance by State'),
 
     html.Div(children='''
         Income and Household Measures of Working-Age Adults: 2005-2015
@@ -23,6 +23,8 @@ app.layout = html.Div(children=[
         id="year-slider"
     ),
     
+    html.H2(children = "Income and Household Measures of Working-Age Adults: 2005-2015"),
+
     dcc.Graph(
         id='map-graph',
         style={'width': '150vh', 'height': '90vh'}
