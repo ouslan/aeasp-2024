@@ -1,5 +1,4 @@
 from geoarrow.rust.core import read_pyogrio, to_geopandas
-from geopy.distance import geodesic as gd
 from urllib.request import urlretrieve
 import geopandas as gpd
 import polars as pl
@@ -13,7 +12,7 @@ class DataClean:
         # verify mov file exists & load into polars dataframe
         if not os.path.exists(file_name):
             self.download_file(url, file_name)
-        self.df = pl.read_csv(file_name, ignore_errors=True)
+        self.mov = pl.read_csv(file_name, ignore_errors=True)
         
         # verify shape file exists & load into geopandas dataframe
         if not os.path.exists("data/shape_files/states.zip"):
@@ -26,9 +25,9 @@ class DataClean:
 
         # verify state_code file exists & load into pandas dataframe
         if not os.path.exists("data/raw/state_code.parquet"):
-            self.codes = self.df.select(pl.col("state_abbr").str.to_lowercase().unique())
+            self.codes = self.mov.select(pl.col("state_abbr").str.to_lowercase().unique())
             self.codes = self.codes.filter(pl.col("state_abbr") != "us")
-            self.codes = self.codes.join(self.df.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
+            self.codes = self.codes.join(self.mov.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
             self.codes = self.codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
             self.codes.write_parquet("data/external/state_code.parquet")
         else:
@@ -58,9 +57,17 @@ class DataClean:
                         pl.Series("avg_distance", [], dtype=pl.Float64),
                     ]
             self.lodes = pl.DataFrame(empty_df).clear()
+            self.retreve_lodes()
             #self.lodes = self.retreve_lodes()
         else:
             self.lodes = pl.read_parquet("data/processed/lodes.parquet")
+
+        # create graph dataset
+        self.df = self.lodes.rename({"state": "STUSPS"})
+        self.df = self.df.with_columns(pl.col("STUSPS").str.to_uppercase())
+        self.df = self.df.to_pandas()
+        self.df = pd.merge(self.df, self.shp, on="STUSPS", how="inner")
+        self.df = gpd.GeoDataFrame(self.df, geometry="geometry")
 
     def retreve_shps(self):
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
@@ -112,13 +119,8 @@ class DataClean:
             urlretrieve(url, filename)
 
     def graph(self, year):
-        mov = pl.read_parquet("data/processed/lodes.parquet")
-        mov = mov.rename({"state": "STUSPS"})
-        mov = mov.with_columns(pl.col("STUSPS").str.to_uppercase())
-        mov = mov.to_pandas()
-        gdf = pd.merge(mov, self.shp, on="STUSPS", how="inner")
+        gdf = self.df.copy()
         gdf = gdf[gdf["year"] == year].reset_index().drop("index", axis=1)
-        gdf = gpd.GeoDataFrame(gdf, geometry="geometry")
         return gdf
     
     def processe_lodes(self, path):
