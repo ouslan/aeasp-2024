@@ -1,5 +1,4 @@
 from geoarrow.rust.core import read_pyogrio, to_geopandas
-from geopy.distance import geodesic as gd
 from urllib.request import urlretrieve
 import geopandas as gpd
 import polars as pl
