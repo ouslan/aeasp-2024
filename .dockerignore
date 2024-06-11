@@ -1,0 +1,26 @@
+notebooks/
+
+# Ignore all pkl files
+*.pkl
+
+# Ignore all database files
+*.db
+*.sqlite
+*.sqlite3
+*.dbf
+*.db-journal
+
+# Ignore csv files
+data/raw/*.csv.gz
+data/shape_files/*.zip
+*.csv.gz
+*.zip
+
+# Ignore Python bytecode files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment file
+.yaml
+.env
