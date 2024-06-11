@@ -57,9 +57,9 @@ def render_content(tab):
             html.Div([
                 dcc.Markdown('''
                     
-                    #### Source
+                    #### Source (about seciton)
                     
-                    Project Gutenberg offers [mirroring via rsync](https://www.gutenberg.org/help/mirroring.html). However, in June 2016, [Allison Parrish](https://www.decontextualize.com/) released a [corpus](https://github.com/aparrish/gutenberg-dammit) of all text files and metadata up to that point in time, which was used here instead of the raw data. 
+                    fasdfasdfdfd
                     
                     #### Transformation
                     
@@ -86,20 +86,17 @@ def render_content(tab):
             html.Div([
                 dcc.Markdown('''
                     
-                    #### Source
+                    #### LEHD Origin-Destination Employment Statistics (LODES) 
                     
-                    Project Gutenberg offers [mirroring via rsync](https://www.gutenberg.org/help/mirroring.html). However, in June 2016, [Allison Parrish](https://www.decontextualize.com/) released a [corpus](https://github.com/aparrish/gutenberg-dammit) of all text files and metadata up to that point in time, which was used here instead of the raw data. 
+                    This dataset containes the origin and destinations of people working from census sate
                     
-                    #### Transformation
+                    #### Mobility, Opportunity, and Volatility Statistics (MOVS)
+
+                    afgasgasdgsg
+
+                    #### Transformations
                     
-                    After unpacking the JSON metadata into a table and mapping "?" to NULL, the books could now be inserted, and split using double newline into paragraphs (5 books were further split manually due to still exceeding the [limit for tsvector](https://www.postgresql.org/docs/current/textsearch-limitations.html), which here was around 720,000 characters). 
-                    
-                    There are some logical inconsistencies in the data such as authors having different birth dates per book, which are left alone for now. Without any information outside the texts and metadata, particularly popularity and academic importance today, search may be less relevant. Some famous quotes occur more often in derivative works than the original. 
-                    
-                    #### Search
-                    
-                    The search uses the language in metadata to phraseto_query the indexed column to preserve ordering of the lexemes, which gave far more precise and less numerous results. [Textsearch headline](https://www.postgresql.org/docs/11/textsearch-controls.html#TEXTSEARCH-HEADLINE) with MaxFragments=1000 was used to generate a quote around matched terms which were aggregated per book with the ts_rank_cd averaged across all matched paragraphs. 
-                
+                    asdgasdgsagsdg
                     '''
                 ),
             ]),
@@ -123,4 +120,4 @@ def update_figure(selected_year):
     return fig
 
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
