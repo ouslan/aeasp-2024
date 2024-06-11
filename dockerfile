@@ -23,12 +23,13 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies including gunicorn
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port
-EXPOSE 8051
+EXPOSE 7050
 
 # Copy the rest of the application code
 COPY . .
 
-CMD gunicorn -b 0.0.0.0:80 app:server
+# Use Gunicorn to serve the application
+CMD ["python", "app.py"]
