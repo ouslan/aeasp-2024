@@ -18,10 +18,11 @@ class tables_DAO:
     def create_state_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS states(
-                    id serial primary key,
-                    state_name varchar(2) NOT NULL,
-                    geom geometry NOT NULL
-                );
+                       id serial primary key,
+                       state_abbr varchar(2) NOT NULL,
+                       state_name varchar(100) NOT NULL,
+                       geom geometry NOT NULL
+                    );
                 """
         cursor.execute(query,)
         self.conn.commit()
@@ -29,26 +30,22 @@ class tables_DAO:
     def create_block_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS blocks(
-                    block_id serial primary key,
-                    state_name foreign key (state_name) references states(state_name),
-                    exports FLOAT NOT NULL,
-                    imports FLOAT NOT NULL,
-                    net_value FLOAT NOT NULL
-            );
-            """
+                       block_id serial primary key,
+                       
+                       states foreign key (state_name) references states(state_name),
+                       geom geometry NOT NULL
+                    );
+                """
         cursor.execute(query,)
         self.conn.commit()
     
     def create_lodes_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS ledes(
-                    block_id serial primary key,
-                    state_name foreign key (state_name) references states(state_name),
-                    exports FLOAT NOT NULL,
-                    imports FLOAT NOT NULL,
-                    net_value FLOAT NOT NULL
-            );
-            """
+                       
+                       state_name foreign key (state_name) references states(state_name),
+                   );
+                """
         cursor.execute(query,)
         self.conn.commit()
 
