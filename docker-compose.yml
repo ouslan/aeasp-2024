@@ -7,7 +7,18 @@ services:
     ports: 
       - 7050:7050
     networks:
-      - network 
+      - network
+  mkdocs:
+    image: squidfunk/mkdocs-material
+    container_name: web-docs
+    restart: always
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./:/docs
+    stdin_open: true
+    tty: true
+
 networks:
   network:
     driver: bridge

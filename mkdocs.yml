@@ -1,0 +1,8 @@
+site_name: AEASP Census Project
+
+nav:
+  - Home: index.md
+  - About: about.md
+
+theme:
+  name: 'material'
