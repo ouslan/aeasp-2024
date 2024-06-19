@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class CreateDAO:
+class CreateDAO:
     def __init__(self):
         df_user = os.environ.get('POSTGRES_USER')
         df_password = os.environ.get('POSTGRES_PASSWORD')
@@ -50,8 +51,15 @@ class CreateDAO:
                        state_name foreign key (state_name) references states(state_name),
                    );
                 """
+                       
+                       state_name foreign key (state_name) references states(state_name),
+                   );
+                """
         cursor.execute(query,)
         self.conn.commit()
+
+    def create_distance_tables(self):
+        pass 
 
     def create_distance_tables(self):
         pass 
@@ -88,6 +96,26 @@ class CreateDAO:
     def create_race_tables(self):
         pass
     
+
+    def create_distance_tables(self):
+        pass 
+
+    def create_movs_tables(self):
+        cursor = self.conn.cursor()
+        query = """CREATE TABLE IF NOT EXISTS ledes(
+                    block_id serial primary key,
+                    state_name foreign key (state_name) references states(state_name),
+            );
+            """
+        cursor.execute(query,)
+        self.conn.commit()
+    
+    def create_sex_tables(self):
+        pass
+
+    def create_race_tables(self):
+        pass
+    
     def create_hypertable(self):
         cursor = self.conn.commit()
         query = """select create_hypertable(
@@ -99,4 +127,5 @@ class CreateDAO:
         self.conn.commit()
 
 if __name__ == "__main__":
+    CreateDAO()
     CreateDAO()
