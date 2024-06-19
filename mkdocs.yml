@@ -1,0 +1,13 @@
+site_name: AEASP Census Project
+
+nav:
+  - Home: index.md
+  - About: about.md
+  - Methedology: method.md
+  - Literary Review: literature.md
+  - Data: data.md
+  - Results: results.md
+  - Conclusion: conclusion.md
+
+theme:
+  name: 'material'

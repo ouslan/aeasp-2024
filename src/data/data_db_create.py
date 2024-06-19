@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-class tables_DAO:
+class CreateDAO:
     def __init__(self):
         df_user = os.environ.get('POSTGRES_USER')
         df_password = os.environ.get('POSTGRES_PASSWORD')
@@ -31,7 +31,11 @@ class tables_DAO:
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS blocks(
                        block_id serial primary key,
+<<<<<<< Updated upstream:src/data/data_db_create.py
                        
+=======
+                       geo_id varchar(15) NOT NULL,
+>>>>>>> Stashed changes:src/dao/tables_dao.py
                        states foreign key (state_name) references states(state_name),
                        geom geometry NOT NULL
                     );
@@ -49,6 +53,9 @@ class tables_DAO:
         cursor.execute(query,)
         self.conn.commit()
 
+    def create_distance_tables(self):
+        pass 
+
     def create_movs_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS ledes(
@@ -62,6 +69,25 @@ class tables_DAO:
         cursor.execute(query,)
         self.conn.commit()
 
+    def create_distance_tables(self):
+        pass 
+
+    def create_movs_tables(self):
+        cursor = self.conn.cursor()
+        query = """CREATE TABLE IF NOT EXISTS ledes(
+                    block_id serial primary key,
+                    state_name foreign key (state_name) references states(state_name),
+            );
+            """
+        cursor.execute(query,)
+        self.conn.commit()
+    
+    def create_sex_tables(self):
+        pass
+
+    def create_race_tables(self):
+        pass
+    
     def create_hypertable(self):
         cursor = self.conn.commit()
         query = """select create_hypertable(
@@ -73,5 +99,4 @@ class tables_DAO:
         self.conn.commit()
 
 if __name__ == "__main__":
-    dao = tables_DAO()
-    dao.create_imp_exp_tables()
+    CreateDAO()
