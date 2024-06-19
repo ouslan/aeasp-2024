@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class CreateDAO:
-class CreateDAO:
     def __init__(self):
         df_user = os.environ.get('POSTGRES_USER')
         df_password = os.environ.get('POSTGRES_PASSWORD')
@@ -31,12 +30,7 @@ class CreateDAO:
     def create_block_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS blocks(
-                       block_id serial primary key,
-<<<<<<< Updated upstream:src/data/data_db_create.py
-                       
-=======
-                       geo_id varchar(15) NOT NULL,
->>>>>>> Stashed changes:src/dao/tables_dao.py
+                       block_id serial primary key,                    
                        states foreign key (state_name) references states(state_name),
                        geom geometry NOT NULL
                     );
@@ -46,12 +40,7 @@ class CreateDAO:
     
     def create_lodes_tables(self):
         cursor = self.conn.cursor()
-        query = """CREATE TABLE IF NOT EXISTS ledes(
-                       
-                       state_name foreign key (state_name) references states(state_name),
-                   );
-                """
-                       
+        query = """CREATE TABLE IF NOT EXISTS ledes(                    
                        state_name foreign key (state_name) references states(state_name),
                    );
                 """
@@ -127,5 +116,4 @@ class CreateDAO:
         self.conn.commit()
 
 if __name__ == "__main__":
-    CreateDAO()
     CreateDAO()
