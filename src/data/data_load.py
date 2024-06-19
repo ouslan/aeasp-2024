@@ -14,17 +14,6 @@ class DataLoad:
         shp["state"] = shp["state"].astype(int)
         return shp
     
-    def load_state_codes(self) -> pl.DataFrame:
-        if not os.path.exists(self.state_code_file_path):
-            codes = self.mov.select(pl.col("state_abbr").str.to_lowercase().unique())
-            codes = codes.filter(pl.col("state_abbr") != "us")
-            codes = codes.join(self.mov.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
-            codes = codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
-            codes.write_parquet(self.state_code_file_path)
-        else:
-            codes = pl.read_parquet(self.state_code_file_path)
-        return codes
-    
     def load_blocks_data(self) -> pl.DataFrame:
 
         if not os.path.exists(self.blocks_file_path):

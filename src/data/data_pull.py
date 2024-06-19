@@ -1,42 +1,61 @@
 from urllib.request import urlretrieve
+import polars as pl
 import os
 
 
 class DataPull:
-    def __init__(slef):
-        self.codes = pl.read_parquet("data/external/state_code.parquet")
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.mov = self.pull_movs()
+        self.codes = self.pull_codes()
         self.pull_shps()
+        self.pull_pumas()
+        self.pull_lodes(2015)
     
-    def pull_shps(self, debug=False) -> None:
+    def pull_movs(self) -> pl.DataFrame:
+        self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","data/raw/movs.csv")
+        if self.debug:
+            print("\033[0;32mINFO: \033[0m" + f"Finished downloading movs.csv")
+        return pl.read_csv("data/raw/movs.csv", ignore_errors=True)
+    
+    def pull_codes(self) -> pl.DataFrame:
+        if not os.path.exists("data/external/state_code.parquet"):
+            codes = self.mov.select(pl.col("state_abbr").str.to_lowercase().unique())
+            codes = codes.filter(pl.col("state_abbr") != "us")
+            codes = codes.join(self.mov.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
+            codes = codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
+            codes.write_parquet("data/external/state_code.parquet")
+            if debug:
+                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_code.parquet")
+        return pl.read_parquet("data/external/state_code.parquet")
+    
+    def pull_shps(self) -> None:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             file_name = f"data/shape_files/{name}_{str(state).zfill(2)}.zip"
-            self.retrieve_file(url, file_name)
-            if debug:
-                print(f"Finished processing {state}")
-    def pull_movs(self) -> None:
-        self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","movs.csv")
-
-    def pull_pumas(self, debug=False) -> None:
+            self.pull_file(url, file_name)
+            if self.debug:
+                print("\033[0;32mINFO: \033[0m" + f"Finished downloading {name}.shp")
+    
+    def pull_pumas(self) -> None:
         pass
 
-    def pull_lodes(self, lodes, years, debug=False) -> None:
-
+    def pull_lodes(self, start_years:int) -> None:
         for state, name, fips in self.codes.select(pl.col("state_abbr", "state_name", "fips")).rows():
-            for year in range(2005, 2020):
+            for year in range(start_years, 2020):
                 url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state}/od/{state}_od_main_JT00_{year}.csv.gz"
                 file_name = f"data/raw/lodes_{state}_{year}.csv.gz"
                 try:
-                    self.retrieve_file(url, file_name)
+                    self.pull_file(url, file_name)
                 except:
-                    print(f"Failed to download {name}, {state}, {year}")
+                    print("\033[1;33mWARNING:  \033[0m"  + f"Could not download lodes file for {state} {year}")
                     continue
-                if debug:
-                    print(f"Finished processing {name}, {state}, {year}")
+                if self.debug:
+                    print("\033[0;32mINFO: \033[0m" + f"Finished downloading {state}_{year}.csv.gz")
     
     def pull_file(self, url, filename) -> None:
         if not os.path.exists(filename):
             urlretrieve(url, filename)
-    
-    def pull_pumas(self, years):
-        pass
+
+if __name__ == "__main__":
+    DataPull(debug=True)
