@@ -2,15 +2,14 @@ from urllib.request import urlretrieve
 import polars as pl
 import os
 
-
 class DataPull:
     def __init__(self, debug=False):
         self.debug = debug
         self.mov = self.pull_movs()
         self.codes = self.pull_codes()
-        self.pull_shps()
+        self.pull_blocks()
         self.pull_pumas()
-        self.pull_lodes(2015)
+        self.pull_lodes(2005)
     
     def pull_movs(self) -> pl.DataFrame:
         self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","data/raw/movs.csv")
@@ -29,16 +28,27 @@ class DataPull:
                 print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_code.parquet")
         return pl.read_parquet("data/external/state_code.parquet")
     
-    def pull_shps(self) -> None:
+    def pull_states(self) -> None:
+        self.pull_file("https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip", "data/shape_files/states.zip")
+        if self.debug:
+            print("\033[0;32mINFO: \033[0m" + f"Finished downloading states.zip")
+
+    def pull_blocks(self) -> None:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
-            file_name = f"data/shape_files/{name}_{str(state).zfill(2)}.zip"
+            file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
             self.pull_file(url, file_name)
             if self.debug:
-                print("\033[0;32mINFO: \033[0m" + f"Finished downloading {name}.shp")
+                print("\033[0;32mINFO: \033[0m" + f"Finished downloading block_{name}.zip")
     
     def pull_pumas(self) -> None:
-        pass
+        for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
+            url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
+            url = f"https://www2.census.gov/geo/tiger/GENZ2020/TABBLOCK20/cb_2018_{str(state).zfill(2)}_puma10_500k.zip"
+            file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
+            self.pull_file(url, file_name)
+            if self.debug:
+                print("\033[0;32mINFO: \033[0m" + f"Finished downloading block_{name}.zip")
 
     def pull_lodes(self, start_years:int) -> None:
         for state, name, fips in self.codes.select(pl.col("state_abbr", "state_name", "fips")).rows():
@@ -48,7 +58,7 @@ class DataPull:
                 try:
                     self.pull_file(url, file_name)
                 except:
-                    print("\033[1;33mWARNING:  \033[0m"  + f"Could not download lodes file for {state} {year}")
+                    print("\033[1;33mWARNING:  \033[0m" + f"Could not download lodes file for {state} {year}")
                     continue
                 if self.debug:
                     print("\033[0;32mINFO: \033[0m" + f"Finished downloading {state}_{year}.csv.gz")
