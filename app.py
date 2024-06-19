@@ -1,12 +1,12 @@
 from dash import Dash, html, dcc, Input, Output
-from src.data.data_process import DataClean
+from src.visualization.data_graph import DataGraph
 import plotly.express as px
 
 # Initialize the Dash app
 app = Dash(__name__, external_stylesheets=["https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"], suppress_callback_exceptions=True)
 
 # Data processing
-data = DataClean()
+data = DataGraph()
 df = data.graph(2016)
 
 # Define the layout of the app

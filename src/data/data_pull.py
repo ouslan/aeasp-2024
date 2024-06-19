@@ -4,12 +4,13 @@ import os
 
 class DataPull:
     def __init__(self, debug=False):
-        self.debug = debug
+        self.debug = False
         self.mov = self.pull_movs()
         self.codes = self.pull_codes()
+        self.pull_states()
         self.pull_blocks()
         self.pull_pumas()
-        self.pull_lodes(2005)
+        self.pull_lodes(2006)
     
     def pull_movs(self) -> pl.DataFrame:
         self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","data/raw/movs.csv")
@@ -24,7 +25,7 @@ class DataPull:
             codes = codes.join(self.mov.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
             codes = codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
             codes.write_parquet("data/external/state_code.parquet")
-            if debug:
+            if self.debug:
                 print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_code.parquet")
         return pl.read_parquet("data/external/state_code.parquet")
     
@@ -43,12 +44,11 @@ class DataPull:
     
     def pull_pumas(self) -> None:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
-            url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
-            url = f"https://www2.census.gov/geo/tiger/GENZ2020/TABBLOCK20/cb_2018_{str(state).zfill(2)}_puma10_500k.zip"
-            file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
+            url = f"https://www2.census.gov/geo/tiger/TIGER2023/PUMA/tl_2023_{str(state).zfill(2)}_puma20.zip"
+            file_name = f"data/shape_files/puma_{name}_{str(state).zfill(2)}.zip"
             self.pull_file(url, file_name)
             if self.debug:
-                print("\033[0;32mINFO: \033[0m" + f"Finished downloading block_{name}.zip")
+                print("\033[0;32mINFO: \033[0m" + f"Finished downloading puma_{name}.zip")
 
     def pull_lodes(self, start_years:int) -> None:
         for state, name, fips in self.codes.select(pl.col("state_abbr", "state_name", "fips")).rows():
