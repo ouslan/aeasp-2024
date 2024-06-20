@@ -15,7 +15,6 @@ class DataGraph:
         return shp
     
     def create_graph_dataset(self) -> gpd.GeoDataFrame:
-
         df = self.data.rename({"state": "STUSPS"})
         df = df.with_columns(pl.col("STUSPS").str.to_uppercase())
         df = df.to_pandas()

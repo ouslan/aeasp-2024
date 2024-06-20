@@ -8,3 +8,5 @@ pyogrio==0.8.0
 geopandas==0.14.4
 pyarrow==16.1.0
 gunicorn==22.0.0
+psycopg2==2.9.9
+python-dotenv==1.0.1

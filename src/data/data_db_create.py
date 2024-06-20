@@ -1,5 +1,5 @@
-import psycopg2
 import os
+import psycopg2
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -14,20 +14,22 @@ class CreateDAO:
              f"host={df_port} " 
              f"port={df_port}")
         self.conn = psycopg2.connect(connection_url)
+        self.create_state_tables()
 
     def create_state_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS states(
-                       id serial primary key,
+                       state_id serial primary key,
+                       state_num varchar(2) NOT NULL,
                        state_abbr varchar(2) NOT NULL,
                        state_name varchar(100) NOT NULL,
                        geom geometry NOT NULL
                     );
                 """
-        cursor.execute(query,)
+        cursor.execute(query)
         self.conn.commit()
 
-    def create_block_tables(self):
+    def create_blocks_tables(self):
         cursor = self.conn.cursor()
         query = """CREATE TABLE IF NOT EXISTS blocks(
                        block_id serial primary key,                    
@@ -35,7 +37,18 @@ class CreateDAO:
                        geom geometry NOT NULL
                     );
                 """
-        cursor.execute(query,)
+        cursor.execute(query)
+        self.conn.commit()
+    
+    def create_puma_tables(self):
+        cursor = self.conn.cursor()
+        query = """CREATE TABLE IF NOT EXISTS pumas(
+                       puma serial primary key,                    
+                       states foreign key (state_name) references states(state_name),
+                       geom geometry NOT NULL
+                    );
+                """
+        cursor.execute(query)
         self.conn.commit()
     
     def create_lodes_tables(self):
@@ -44,11 +57,8 @@ class CreateDAO:
                        state_name foreign key (state_name) references states(state_name),
                    );
                 """
-        cursor.execute(query,)
+        cursor.execute(query)
         self.conn.commit()
-
-    def create_distance_tables(self):
-        pass 
 
     def create_distance_tables(self):
         pass 
@@ -63,11 +73,8 @@ class CreateDAO:
                     net_value FLOAT NOT NULL
             );
             """
-        cursor.execute(query,)
+        cursor.execute(query)
         self.conn.commit()
-
-    def create_distance_tables(self):
-        pass 
 
     def create_movs_tables(self):
         cursor = self.conn.cursor()
@@ -76,27 +83,7 @@ class CreateDAO:
                     state_name foreign key (state_name) references states(state_name),
             );
             """
-        cursor.execute(query,)
-        self.conn.commit()
-    
-    def create_sex_tables(self):
-        pass
-
-    def create_race_tables(self):
-        pass
-    
-
-    def create_distance_tables(self):
-        pass 
-
-    def create_movs_tables(self):
-        cursor = self.conn.cursor()
-        query = """CREATE TABLE IF NOT EXISTS ledes(
-                    block_id serial primary key,
-                    state_name foreign key (state_name) references states(state_name),
-            );
-            """
-        cursor.execute(query,)
+        cursor.execute(query)
         self.conn.commit()
     
     def create_sex_tables(self):
@@ -107,12 +94,12 @@ class CreateDAO:
     
     def create_hypertable(self):
         cursor = self.conn.commit()
-        query = """select create_hypertable(
-            'ledes',
-            interval '1 year'
-        )
+        query = """SELECT create_hypertable(
+                      'ledes',
+                       interval '1 year'
+            );
         """
-        cursor.execute(query,)
+        cursor.execute(query)
         self.conn.commit()
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ services:
       networks:
         - timescale_network
   pgadmin:
-      image: dpage/pgadmin4:4.23
+      image: dpage/pgadmin4:8.8
       container_name: dev_pgadmin4
       environment:
         PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
