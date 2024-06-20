@@ -14,7 +14,15 @@ class CreateDAO:
              f"host={df_port} " 
              f"port={df_port}")
         self.conn = psycopg2.connect(connection_url)
+        self.create_extension()
+        self.create_blocks_tables()
         self.create_state_tables()
+
+    def create_extension(self):
+        cursor = self.conn.cursor()
+        query = """CREATE EXTENSION IF NOT EXISTS postgis;"""
+        cursor.execute(query)
+        self.conn.commit()
 
     def create_state_tables(self):
         cursor = self.conn.cursor()
