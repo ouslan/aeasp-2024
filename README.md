@@ -67,9 +67,7 @@ The `DataClean` class processes the data in several steps:
 The project uses two regression models:
 1. **OLS Regression**: Estimates coefficients of the MOVS dataset to move data from state level to county level.
 2. **Panel Spatial Regression with Fixed Effects**: Incorporates spatial interaction between neighboring counties. The model used is:
-   \[
-   y_{it} = \rho \sum_{j=1}^N w_{ij} y_{jt} + x_{it} \beta + \mu_i + e_{it}
-   \]
+   $$y_{it} = \rho \sum_{j=1}^N w_{ij} y_{jt} + x_{it} \beta + \mu_i + e_{it}$$
 
 ### Contact
 For any queries, feel free to contact the project maintainer.
