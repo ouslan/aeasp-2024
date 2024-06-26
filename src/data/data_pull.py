@@ -3,8 +3,8 @@ import polars as pl
 import os
 
 class DataPull:
-    def __init__(self, debug=False):
-        self.debug = False
+    def __init__(self, debug=True):
+        self.debug = debug
         self.mov = self.pull_movs()
         self.codes = self.pull_codes()
         self.pull_states()

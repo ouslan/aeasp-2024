@@ -7,7 +7,7 @@ from src.data.data_pull import DataPull
 
 class DataProcess(DataPull):
 
-    def __init__(self):
+    def __init__(self, debug=True):
         super().__init__(self)
         self.blocks = self.process_shps()
         self.process_lodes()

@@ -1,38 +1,45 @@
-import os
-import psycopg2
+from geoalchemy2 import Geometry, WKTElement
+from sqlalchemy import create_engine
 from dotenv import load_dotenv
+import geopandas as gpd
+import psycopg2
+import os
 load_dotenv()
 
-class CreateDAO:
+class DAO:
     def __init__(self):
-        df_user = os.environ.get('POSTGRES_USER')
-        df_password = os.environ.get('POSTGRES_PASSWORD')
-        df_name = os.environ.get('POSTGRES_DB')
-        df_host = os.environ.get('POSTGRES_HOST')
-        df_port = os.environ.get('POSTGRES_PORT')
+        db_user = os.environ.get('POSTGRES_USER')
+        db_password = os.environ.get('POSTGRES_PASSWORD')
+        db_name = os.environ.get('POSTGRES_DB')
+        db_host = os.environ.get('POSTGRES_HOST')
+        db_port = os.environ.get('POSTGRES_PORT')
+        self.conn2 = con = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
         self.conn = psycopg2.connect(
-                                     host=df_host,
-                                     database=df_name,
-                                     user=df_user,
-                                     password=df_password,
-                                     port=df_port
-)
-        self.create_extension()
-        self.create_state_tables()
-        self.create_blocks_tables()
-        self.create_puma_tables()
-        self.create_lodes_tables()
-        self.create_distance_tables()
-        #self.create_movs_tables()
-        #self.create_sex_tables()
-        #self.create_race_tables()
-
-    def create_extension(self):
+                                     host=db_host,
+                                     database=db_name,
+                                     user=db_user,
+                                     password=db_password,
+                                     port=db_port)
+        with open('src/data/schema.sql', 'r') as file:
+            sql_query = file.read()
         cursor = self.conn.cursor()
-        query = """CREATE EXTENSION IF NOT EXISTS postgis;"""
-        cursor.execute(query)
+        cursor.execute(sql_query)
         self.conn.commit()
-
+        self.insert_blocks()
+        
+    
+    def insert_blocks(self):
+        id_count = 0
+        for file in os.listdir('data/shape_files/'):
+            if file.endswith('.zip') and file.startswith('block_'):
+                gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+                gdf.rename(columns={"STATEFP20": "state_id", "GEOID20": "block_num"}, inplace=True)
+                gdf["block_id"] = gdf.index.values + 1 + id_count
+                gdf = gdf[["block_id", "state_id", "block_num", "geometry"]]
+                gdf = gdf.astype({'block_id': 'int64', 'state_id': 'int64'}).set_crs(3857, allow_override=True)
+                gdf.to_postgis(name='blocks_shp', con=self.conn2, if_exists='append', index=False, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+                id_count += len(gdf)
+                print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} blocks")
 
 if __name__ == "__main__":
     CreateDAO()
