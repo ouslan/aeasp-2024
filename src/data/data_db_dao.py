@@ -25,6 +25,7 @@ class DAO:
         cursor = self.conn.cursor()
         cursor.execute(sql_query)
         self.conn.commit()
+        self.insert_pumas()
         self.insert_blocks()
         
     
@@ -35,9 +36,22 @@ class DAO:
                 gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
                 gdf.rename(columns={"STATEFP20": "state_id", "GEOID20": "block_num"}, inplace=True)
                 gdf["block_id"] = gdf.index.values + 1 + id_count
+                gdf = gdf.astype({'state_id': 'int64'}).set_crs(3857, allow_override=True).sort_values(by='block_num').reset_index(drop=True)
                 gdf = gdf[["block_id", "state_id", "block_num", "geometry"]]
-                gdf = gdf.astype({'block_id': 'int64', 'state_id': 'int64'}).set_crs(3857, allow_override=True)
                 gdf.to_postgis(name='blocks_shp', con=self.conn2, if_exists='append', index=False, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+                id_count += len(gdf)
+                print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} blocks")
+
+    def insert_pumas(self):
+        id_count = 0
+        for file in os.listdir('data/shape_files/'):
+            if file.endswith('.zip') and file.startswith('puma_'):
+                gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+                gdf.rename(columns={"STATEFP20": "state_id", "GEOID20": "puma_num", "NAMELSAD20": "puma_name"}, inplace=True)
+                gdf = gdf.astype({'state_id': 'int64'}).set_crs(3857, allow_override=True).sort_values(by='puma_num').reset_index(drop=True)
+                gdf["puma_id"] = gdf.index.values + 1 + id_count
+                gdf = gdf[["puma_id", "state_id","puma_num", "puma_name", "geometry"]]
+                gdf.to_postgis(name='pumas_shp', con=self.conn2, if_exists='append', index=False, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
                 id_count += len(gdf)
                 print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} blocks")
 
