@@ -4,6 +4,8 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- create the spatial tables
 CREATE TABLE IF NOT EXISTS "states_shp"(
     "state_id" INT,
+    "state_abbr" VARCHAR(2) NOT NULL UNIQUE,
+    "state_name" TEXT NOT NULL UNIQUE,
     "geometry" GEOMETRY(MULTIPOLYGON,3857) NOT NULL,
     PRIMARY KEY ("state_id")
 );
@@ -11,7 +13,7 @@ CREATE TABLE IF NOT EXISTS "states_shp"(
 CREATE TABLE IF NOT EXISTS "blocks_shp"(
     "block_id" INT,
     "state_id" INT,
-    "block_num" VARCHAR(15),
+    "block_num" VARCHAR(15) NOT NULL UNIQUE,
     "geometry" GEOMETRY(MULTIPOLYGON,3857) NOT NULL,
     PRIMARY KEY ("block_id")
 );
@@ -20,7 +22,7 @@ CREATE TABLE IF NOT EXISTS "pumas_shp"(
     "puma_id" INT,
     "state_id" INT,
     "puma_name" TEXT,
-    "puma_num" INT,
+    "puma_num" INT NOT NULL UNIQUE,
     "geometry" GEOMETRY(MULTIPOLYGON,3857) NOT NULL
 );
 
