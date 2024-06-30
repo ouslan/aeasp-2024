@@ -1,10 +1,14 @@
 from urllib.request import urlretrieve
+from dotenv import load_dotenv
 import polars as pl
 import os
 
+load_dotenv()
 class DataPull:
+
     def __init__(self, debug=True):
         self.debug = debug
+        self.key = os.environ.get('CENSUS_API_KEY')
         self.mov = self.pull_movs()
         self.codes = self.pull_codes()
         self.pull_states()
@@ -62,6 +66,51 @@ class DataPull:
                     continue
                 if self.debug:
                     print("\033[0;32mINFO: \033[0m" + f"Finished downloading {state}_{year}.csv.gz")
+
+    def pull_roads(self) -> None:
+        pass
+
+    def pull_acs(self) -> pl.DataFrame:
+        
+        empty_df = [
+                    pl.Series("JWMNP", [], dtype=pl.Int64),
+                    pl.Series("SEX", [], dtype=pl.Int64),
+                    pl.Series("ST", [], dtype=pl.Int64),
+                    pl.Series("RACAIAN", [], dtype=pl.Int64),
+                    pl.Series("RACASN", [], dtype=pl.Int64),
+                    pl.Series("RACBLK", [], dtype=pl.Int64),
+                    pl.Series("RACNUM", [], dtype=pl.Int64),
+                    pl.Series("RACWHT", [], dtype=pl.Int64),
+                    pl.Series("RACSOR", [], dtype=pl.Int64),
+                    pl.Series("HISP", [], dtype=pl.Int64),
+                    pl.Series("PWGTP", [], dtype=pl.Int64),
+                    pl.Series("COW", [], dtype=pl.Int64),
+                    pl.Series("PUMA", [], dtype=pl.Int64),
+                    pl.Series("state", [], dtype=pl.Int64),
+                    pl.Series("year", [], dtype=pl.Int64),
+                    ]
+        
+        param = 'JWMNP,SEX,ST,RACAIAN,RACASN,RACBLK,RACNUM,RACWHT,RACSOR,HISP,PWGTP,COW,PUMA'
+        base = 'https://api.census.gov/data/'
+        flow = '/acs/acs1/pums'
+        key = os.environ.get('CENSUS_API_KEY')
+        
+        for year in range(2008,2009):
+            acs = pl.DataFrame(empty_df).clear()
+            for state, name in code.select(pl.col("fips", "state_name")).rows():
+                url = f'{base}{year}{flow}?get={param}&for=state:{str(state).zfill(2)}&key={key}'
+                try:
+                    r = requests.get(url).json()
+                except:
+                    print("\033[1;33mWARNING:  \033[0m" + f"Could not download ACS data for {name} {year}")
+                    continue
+                df = pl.DataFrame(r)
+                names = df.select(pl.col("column_0")).transpose()
+                df = df.drop("column_0").transpose()
+                df = df.rename(names.to_dicts().pop()).with_columns(year=pl.lit(year)).select(pl.col("*").cast(pl.Int64))
+                acs = pl.concat([acs, df], how="vertical")
+            acs.write_parquet(f"data/raw/acs_{year}.parquet")
+            print("\033[0;32mINFO: \033[0m" + f"Finished downloading acs_{year}.csv")
     
     def pull_file(self, url, filename) -> None:
         if not os.path.exists(filename):

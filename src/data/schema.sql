@@ -33,6 +33,25 @@ CREATE TABLE IF NOT EXISTS "counts_shp"(
     PRIMARY KEY ("count_id")
 );
 
+CREATE TABLE IF NOT EXISTS "acs_table"(
+    "JWMNP" TEXT,
+    "SEX" VARCHAR(1),
+    "ST" VARCHAR(2),
+    "RACAIAN" VARCHAR(1),
+    "RACASN" VARCHAR(1),
+    "RACBLK" VARCHAR(1),
+    "RACNUM" VARCHAR(1),
+    "RACWHT" VARCHAR(1),
+    "RACSOR" VARCHAR(1),
+    "HISP" VARCHAR(1),
+    "PUMA" TEXT,
+    "PWGTP" VARCHAR(3),
+    "COW" VARCHAR(1),
+    "SCHL" VARCHAR(2),
+    "state" VARCHAR(2),
+    "year" INT
+);
+
 -- create demographic tables
 CREATE TABLE IF NOT EXISTS "sex_table"(
     "sex_id" SERIAL PRIMARY KEY,
