@@ -1,5 +1,6 @@
 from urllib.request import urlretrieve
 from dotenv import load_dotenv
+import geopandas as gpd
 import polars as pl
 import os
 
@@ -10,7 +11,9 @@ class DataPull:
         self.debug = debug
         self.key = os.environ.get('CENSUS_API_KEY')
         self.mov = self.pull_movs()
-        self.codes = self.pull_codes()
+        self.codes = self.pull_state_codes()
+        self.pull_counties()
+        self.county_codes  = self.pull_county_codes()
         self.pull_states()
         self.pull_blocks()
         self.pull_pumas()
@@ -22,26 +25,44 @@ class DataPull:
             print("\033[0;32mINFO: \033[0m" + f"Finished downloading movs.csv")
         return pl.read_csv("data/raw/movs.csv", ignore_errors=True)
     
-    def pull_codes(self) -> pl.DataFrame:
-        if not os.path.exists("data/external/state_code.parquet"):
+    def pull_state_codes(self) -> pl.DataFrame:
+        if not os.path.exists("data/external/state_codes.parquet"):
             codes = self.mov.select(pl.col("state_abbr").str.to_lowercase().unique())
             codes = codes.filter(pl.col("state_abbr") != "us")
             codes = codes.join(self.mov.with_columns(pl.col("state_abbr").str.to_lowercase()), on="state_abbr", how="inner")
             codes = codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
-            codes.write_parquet("data/external/state_code.parquet")
+            codes.write_parquet("data/external/state_codes.parquet")
             if self.debug:
-                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_code.parquet")
-        return pl.read_parquet("data/external/state_code.parquet")
+                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_codes.parquet")
+        return pl.read_parquet("data/external/state_codes.parquet")
+    
+    def pull_county_codes(self) -> pl.DataFrame:
+        if not os.path.exists("data/external/county_codes.parquet"):
+            codes = gpd.read_file("data/shape_files/counties.zip", engine="pyogrio")
+            codes["county_id"] = codes["STATEFP"] + codes["COUNTYFP"]
+            code = self.codes.select(pl.col("fips")).to_series().to_list()
+            codes = codes[codes["STATEFP"].astype(int).isin(code)].reset_index().copy()
+            codes = pl.from_pandas(codes[["STATEFP", "COUNTYFP", "county_id", "NAME"]]).write_parquet("data/external/county_codes.parquet")
+            if self.debug:
+                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing county_codes.parquet")
+        return pl.read_parquet("data/external/county_codes.parquet")
     
     def pull_states(self) -> None:
         self.pull_file("https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip", "data/shape_files/states.zip")
         if self.debug:
             print("\033[0;32mINFO: \033[0m" + f"Finished downloading states.zip")
 
+    def pull_counties(self) -> None:
+        self.pull_file("https://www2.census.gov/geo/tiger/TIGER2023/COUNTY/tl_2023_us_county.zip", "data/shape_files/counties.zip")
+        if self.debug:
+            print("\033[0;32mINFO: \033[0m" + f"Finished downloading counties.zip")
+
     def pull_blocks(self) -> None:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
+            if os.path.exists(file_name):
+                continue
             self.pull_file(url, file_name)
             if self.debug:
                 print("\033[0;32mINFO: \033[0m" + f"Finished downloading block_{name}.zip")
@@ -50,6 +71,8 @@ class DataPull:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/PUMA/tl_2023_{str(state).zfill(2)}_puma20.zip"
             file_name = f"data/shape_files/puma_{name}_{str(state).zfill(2)}.zip"
+            if os.path.exists(file_name):
+                continue
             self.pull_file(url, file_name)
             if self.debug:
                 print("\033[0;32mINFO: \033[0m" + f"Finished downloading puma_{name}.zip")
@@ -59,6 +82,8 @@ class DataPull:
             for year in range(start_years, 2020):
                 url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state}/od/{state}_od_main_JT00_{year}.csv.gz"
                 file_name = f"data/raw/lodes_{state}_{year}.csv.gz"
+                if os.path.exists(file_name):
+                    continue
                 try:
                     self.pull_file(url, file_name)
                 except:
@@ -68,7 +93,15 @@ class DataPull:
                     print("\033[0;32mINFO: \033[0m" + f"Finished downloading {state}_{year}.csv.gz")
 
     def pull_roads(self) -> None:
-        pass
+        for year in range(2010, 2020):
+            for num in range(1000, 79000):
+                url = f"https://www2.census.gov/geo/tiger/TIGER{year}/ROADS/tl_{year}_{str(num).zfill(5)}_roads.zip"
+                file_name = f"data/shape_files/roads_{year}_{str(num).zfill(5)}.zip"
+                try:
+                    self.pull_file(url, file_name)
+                    print("\033[0;32mINFO:\033[0m File downloaded successfully")
+                except:
+                    continue
 
     def pull_acs(self) -> pl.DataFrame:
         
@@ -97,7 +130,7 @@ class DataPull:
         
         for year in range(2008,2009):
             acs = pl.DataFrame(empty_df).clear()
-            for state, name in code.select(pl.col("fips", "state_name")).rows():
+            for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
                 url = f'{base}{year}{flow}?get={param}&for=state:{str(state).zfill(2)}&key={key}'
                 try:
                     r = requests.get(url).json()
