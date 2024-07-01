@@ -17,7 +17,8 @@ class DataPull:
         self.pull_states()
         self.pull_blocks()
         self.pull_pumas()
-        self.pull_lodes(2006)
+        #self.pull_lodes(2006)
+        self.pull_roads()
     
     def pull_movs(self) -> pl.DataFrame:
         self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","data/raw/movs.csv")
@@ -53,7 +54,7 @@ class DataPull:
             print("\033[0;32mINFO: \033[0m" + f"Finished downloading states.zip")
 
     def pull_counties(self) -> None:
-        self.pull_file("https://www2.census.gov/geo/tiger/TIGER2023/COUNTY/tl_2023_us_county.zip", "data/shape_files/counties.zip")
+        self.pull_file("https://www2.census.gov/geo/tiger/TIGER2019/COUNTY/tl_2019_us_county.zip", "data/shape_files/counties.zip")
         if self.debug:
             print("\033[0;32mINFO: \033[0m" + f"Finished downloading counties.zip")
 
@@ -69,7 +70,7 @@ class DataPull:
     
     def pull_pumas(self) -> None:
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
-            url = f"https://www2.census.gov/geo/tiger/TIGER2023/PUMA/tl_2023_{str(state).zfill(2)}_puma20.zip"
+            url = f"https://www2.census.gov/geo/tiger/TIGER2019/PUMA/tl_2019_{str(state).zfill(2)}_puma10.zip"
             file_name = f"data/shape_files/puma_{name}_{str(state).zfill(2)}.zip"
             if os.path.exists(file_name):
                 continue
@@ -94,14 +95,16 @@ class DataPull:
 
     def pull_roads(self) -> None:
         for year in range(2010, 2020):
-            for num in range(1000, 79000):
-                url = f"https://www2.census.gov/geo/tiger/TIGER{year}/ROADS/tl_{year}_{str(num).zfill(5)}_roads.zip"
-                file_name = f"data/shape_files/roads_{year}_{str(num).zfill(5)}.zip"
+            for county_id, county_name in self.county_codes.select(pl.col("county_id", "NAME")).rows():
+                url = f"https://www2.census.gov/geo/tiger/TIGER{year}/ROADS/tl_{year}_{county_id}_roads.zip"
+                file_name = f"data/shape_files/roads_{year}_{county_name}.zip"
+                if os.path.exists(file_name):
+                    continue
                 try:
                     self.pull_file(url, file_name)
-                    print("\033[0;32mINFO:\033[0m File downloaded successfully")
                 except:
-                    continue
+                    print("\033[1;33mWARNING:  \033[0m" + f"Could not download roads file for {county_name} {county_id} {year}")
+                print(f"\033[0;32mINFO:\033[0m Downloaded {county_name} roads for {year}")
 
     def pull_acs(self) -> pl.DataFrame:
         
