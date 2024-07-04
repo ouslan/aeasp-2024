@@ -2,12 +2,14 @@ from geoalchemy2 import Geometry
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import geopandas as gpd
+import pandas as pd
 import psycopg2
 import os
 
 load_dotenv()
 
 class DAO:
+
     def __init__(self):
         db_user = os.environ.get('POSTGRES_USER')
         db_password = os.environ.get('POSTGRES_PASSWORD')
@@ -29,6 +31,7 @@ class DAO:
         self.insert_states()
         self.insert_pumas()
         self.insert_blocks()
+        self.insert_roads()
 
     def data_exists(self, table_name):
         with self.conn2.connect() as con:
@@ -40,7 +43,12 @@ class DAO:
             gdf = gpd.read_file("data/shape_files/states.zip", engine="pyogrio")
             gdf.rename(columns={"STATEFP": "state_id", "STUSPS": "state_abbr", "NAME": "state_name"}, inplace=True)
             gdf = gdf[["state_id", "state_abbr", "state_name", "geometry"]].astype({"state_id": "int64"}).set_crs(3857, allow_override=True)
-            gdf.to_postgis(name='states_shp', con=self.conn2, if_exists='append', chunksize=5000, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+            gdf.to_postgis(
+                           name='states_shp', 
+                           con=self.conn2, 
+                           if_exists='append', 
+                           chunksize=5000, 
+                           dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
             print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting states")
         else:
             print("\033[0;36mPROCESS: \033[0m" + "States data already exists")
@@ -55,7 +63,12 @@ class DAO:
                     gdf["block_id"] = gdf.index.values + 1 + id_count
                     gdf = gdf.astype({'state_id': 'int64'}).set_crs(3857, allow_override=True).sort_values(by='block_num').reset_index(drop=True)
                     gdf = gdf[["block_id", "state_id", "block_num", "geometry"]]
-                    gdf.to_postgis(name='blocks_shp', con=self.conn2, if_exists='append', chunksize=5000, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+                    gdf.to_postgis(
+                                   name='blocks_shp', 
+                                   con=self.conn2, 
+                                   if_exists='append', 
+                                   chunksize=5000, 
+                                   dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
                     id_count += len(gdf)
                     print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} blocks")
         else:
@@ -67,15 +80,39 @@ class DAO:
             for file in os.listdir('data/shape_files/'):
                 if file.endswith('.zip') and file.startswith('puma_'):
                     gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
-                    gdf.rename(columns={"STATEFP20": "state_id", "GEOID20": "puma_num", "NAMELSAD20": "puma_name"}, inplace=True)
+                    gdf.rename(columns={"STATEFP10": "state_id", "GEOID10": "puma_num", "NAMELSAD10": "puma_name"}, inplace=True)
                     gdf = gdf.astype({'state_id': 'int64'}).set_crs(3857, allow_override=True).sort_values(by='puma_num').reset_index(drop=True)
                     gdf["puma_id"] = gdf.index.values + 1 + id_count
                     gdf = gdf[["puma_id", "state_id","puma_num", "puma_name", "geometry"]]
-                    gdf.to_postgis(name='pumas_shp', con=self.conn2, if_exists='append', chunksize=5000, dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+                    gdf.to_postgis(
+                            name='pumas_shp', 
+                            con=self.conn2, if_exists='append', 
+                            chunksize=5000, 
+                            dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
                     id_count += len(gdf)
                     print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} pumas")
         else:
-            print("\033[0;36mPROCESS: \033[0m" + "Pumas data already exists")
+            print("\033[1;33mWARNING: \033[0m" + "Pumas data already exists")
+    
+    def insert_roads(self):
+        if not self.data_exists('roads_table'):
+            for file in os.listdir('data/shape_files/'):
+                if file.startswith('roads'):
+                    year = file.split('_')[1]
+                    gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+                    gdf.rename(columns={"LINEARID": "linear_id"}, inplace=True)
+                    gdf["year"] = pd.to_datetime(year, format='%Y')
+                    gdf = gdf[["linear_id", "year", "geometry"]].set_crs(3857, allow_override=True)
+                    gdf.to_postgis(
+                                   name='roads_table', 
+                                   con=self.conn2, 
+                                   if_exists='append', 
+                                   chunksize=1000, 
+                                   dtype={'geometry': Geometry('GEOMETRY', srid=3857)})
+                    print("\033[0;36mPROCESS: \033[0m" + f"Finished inserting {file} roads")
 
+        else:
+            print("\033[0;36mPROCESS: \033[0m" + "Roads data already exists")
+asdf
 if __name__ == "__main__":
     DAO()

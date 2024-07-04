@@ -33,6 +33,28 @@ CREATE TABLE IF NOT EXISTS "counts_shp"(
     PRIMARY KEY ("count_id")
 );
 
+-- create demographic tables
+CREATE TABLE IF NOT EXISTS "sex_table"(
+    "sex_id" SERIAL PRIMARY KEY,
+    "name" VARCHAR(6) NOT NULL UNIQUE
+);
+INSERT INTO "sex_table" ("name") VALUES ('male'), ('female') ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS "race_table"(
+    "race_id" SERIAL PRIMARY KEY,
+    "name" VARCHAR(8) NOT NULL UNIQUE
+);
+
+INSERT INTO "race_table" ("name") VALUES ('hispanic'), ('white'), ('black'), ('native'), ('asian'), ('other') ON CONFLICT DO NOTHING;
+
+-- create data tables
+
+CREATE TABLE IF NOT EXISTS "roads_table"(
+    "linear_id" VARCHAR(14) NOT NULL,
+    "year" TIMESTAMPTZ NOT NULL,
+    "geometry" GEOMETRY(MULTILINESTRING,3857) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS "acs_table"(
     "JWMNP" TEXT,
     "SEX" VARCHAR(1),
@@ -52,16 +74,11 @@ CREATE TABLE IF NOT EXISTS "acs_table"(
     "year" INT
 );
 
--- create demographic tables
-CREATE TABLE IF NOT EXISTS "sex_table"(
-    "sex_id" SERIAL PRIMARY KEY,
-    "name" VARCHAR(6) NOT NULL UNIQUE
-);
-INSERT INTO "sex_table" ("name") VALUES ('male'), ('female') ON CONFLICT DO NOTHING;
+-- create hypertables
 
-CREATE TABLE IF NOT EXISTS "race_table"(
-    "race_id" SERIAL PRIMARY KEY,
-    "name" VARCHAR(8) NOT NULL UNIQUE
+SELECT create_hypertable(
+    'roads_table', 
+    'year', 
+    chunk_time_interval => INTERVAL '1 year', 
+    if_not_exists => TRUE
 );
-
-INSERT INTO "race_table" ("name") VALUES ('hispanic'), ('white'), ('black'), ('native'), ('asian'), ('other') ON CONFLICT DO NOTHING;
