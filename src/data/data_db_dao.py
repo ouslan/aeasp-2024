@@ -1,5 +1,6 @@
-from geoalchemy2 import Geometry
+from src.data.data_process import DataProcess
 from sqlalchemy import create_engine, text
+from geoalchemy2 import Geometry
 from dotenv import load_dotenv
 import geopandas as gpd
 import pandas as pd
@@ -8,9 +9,10 @@ import os
 
 load_dotenv()
 
-class DAO:
+class DAO(DataProcess):
 
     def __init__(self):
+        super().__init__()
         db_user = os.environ.get('POSTGRES_USER')
         db_password = os.environ.get('POSTGRES_PASSWORD')
         db_name = os.environ.get('POSTGRES_DB')
@@ -28,10 +30,11 @@ class DAO:
         cursor = self.conn.cursor()
         cursor.execute(sql_query)
         self.conn.commit()
-        self.insert_states()
-        self.insert_pumas()
-        self.insert_blocks()
-        self.insert_roads()
+        #self.insert_states()
+        #self.insert_pumas()
+        #self.insert_blocks()
+        #self.insert_roads()
+        self.insert_acs()
 
     def data_exists(self, table_name):
         with self.conn2.connect() as con:
@@ -113,6 +116,16 @@ class DAO:
 
         else:
             print("\033[0;36mPROCESS: \033[0m" + "Roads data already exists")
-asdf
+    
+    def insert_acs(self):
+        if not self.data_exists('acs_table'):
+            df = self.process_acs()
+            df = df.rename({"state": "state_id", "PUMA": "puma_id", "race": "race_id", "sex": "sex_id"})
+            df.write_database(
+                table_name="acs_table",  
+                connection=self.conn2,
+                if_table_exists="append",
+            )
+
 if __name__ == "__main__":
     DAO()
