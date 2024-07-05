@@ -75,14 +75,6 @@ class DataPull:
             file_name = f"data/shape_files/puma_{name}_{str(state).zfill(2)}.zip"
             self.pull_file(url, file_name)
 
-    def pull_lodes(self, start_years:int) -> None:
-        
-        for state, name, fips in self.codes.select(pl.col("state_abbr", "state_name", "fips")).rows():
-            for year in range(start_years, 2020):
-                url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state}/od/{state}_od_main_JT00_{year}.csv.gz"
-                file_name = f"data/raw/lodes_{state}_{year}.csv.gz"
-                self.pull_file(url, file_name)
-
     def pull_roads(self) -> None:
         
         for year in range(2010, 2020):
