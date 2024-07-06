@@ -14,37 +14,6 @@ class DataProcess(DataPull):
         # self.process_lodes()
         self.process_roads()
 
-    def process_shps(self) -> pl.DataFrame:
-        empty_df = [
-            pl.Series("STATEFP20", [], dtype=pl.String),
-            pl.Series("GEOID20", [], dtype=pl.String),
-            pl.Series("lon", [], dtype=pl.Float64),
-            pl.Series("lat", [], dtype=pl.Float64),
-        ]
-        blocks = pl.DataFrame(empty_df).clear()
-        if not os.path.exists("data/processed/blocks.parquet"):
-            for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
-                file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
-                tmp = gpd.read_file(file_name, engine="pyogrio")
-                tmp = tmp.set_crs(3857, allow_override=True)
-                tmp_shp = tmp[["STATEFP20", "GEOID20", "geometry"]].copy()
-                tmp_shp["centroid"] = tmp_shp.centroid
-                tmp_shp["lon"] = tmp_shp.centroid.x
-                tmp_shp["lat"] = tmp_shp.centroid.y
-                tmp_block = pl.from_pandas(
-                    tmp_shp[["STATEFP20", "GEOID20", "lon", "lat"]]
-                )
-                blocks = pl.concat([blocks, tmp_block], how="vertical")
-                print(
-                    "\033[0;36mPROCESS: \033[0m" + f"Finished processing {name} Shapes"
-                )
-            blocks.sort(by=["STATEFP20", "GEOID20"]).write_parquet(
-                "data/processed/blocks.parquet"
-            )
-            return blocks
-        else:
-            return pl.read_parquet("data/processed/blocks.parquet")
-
     def process_acs(self):
         empty_df = [
             pl.Series("year", [], dtype=pl.Date),

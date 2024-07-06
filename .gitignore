@@ -162,11 +162,10 @@ cython_debug/
 data/processed
 data/raw
 data/shape_files
-data/interm
+data/interim
 data/external
 notebooks/
 #force to keep the pnb.csv file in data/external
-
 
 .DS_Store
 .vscode/

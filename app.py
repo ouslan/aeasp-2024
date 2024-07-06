@@ -1,13 +1,15 @@
-from dash import Dash, html, dcc, Input, Output
-from src.visualization.data_graph import DataGraph
+from dash import Dash, html, dcc, Input, Output, State
+import pandas as pd
+from src.visualization.data_graph import DataGraph  # Assuming DataGraph is a custom class
 import plotly.express as px
 
 # Initialize the Dash app
 app = Dash(__name__, external_stylesheets=["https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"], suppress_callback_exceptions=True)
 
-# Data processing
+# Assuming this initializes your data using DataGraph
 data = DataGraph()
-df = data.graph(2016)
+state_codes = pd.read_parquet("data/external/state_codes.parquet")
+state_options = [{'label': state_name, 'value': state_code} for state_name, state_code in zip(state_codes['state_name'], state_codes['fips'])]
 
 # Define the layout of the app
 app.layout = html.Div([
@@ -27,20 +29,43 @@ app.layout = html.Div([
 def render_content(tab):
     if tab == 'map-tab':
         return html.Div([
-            html.H1(children='Average Travel Distance by State'),
+            html.H1(children='Average Travel Time by State and PUMA'),
 
             html.Div(children='''
-                Income and Household Measures of Working-Age Adults: 2005-2015
+                
             '''),
 
-            dcc.Slider(
-                min=data.lodes['year'].min(),
-                max=data.lodes['year'].max(),
-                step=None,
-                value=data.df['year'].max(),
-                marks={str(year): str(year) for year in data.df['year'].unique()},
-                id="year-slider"
-            ),
+            html.Div([
+                dcc.Dropdown(
+                    id='state-dropdown',
+                    options=state_options,
+                    value=state_codes.iloc[0]['fips']
+                ),
+                dcc.Dropdown(
+                    id='sex-dropdown',
+                    options=[
+                        {'label': 'Male', 'value': 0},
+                        {'label': 'Female', 'value': 1},
+                        {'label': 'All', 'value': 3}
+                    ],
+                    value=3
+                ),
+                dcc.Dropdown(
+                    id='race-dropdown',
+                    options=[
+                        {'label': 'American Indian', 'value': 'RACAIAN'},
+                        {'label': 'Asian', 'value': 'RACASN'},
+                        {'label': 'Black', 'value': 'RACBLK'},
+                        {'label': 'Native Hawaiian', 'value': 'RACNUM'},
+                        {'label': 'White', 'value': 'RACWHT'},
+                        {'label': 'Some Other Race', 'value': 'RACSOR'},
+                        {'label': 'Hispanic', 'value': 'HISP'},
+                        {'label': 'All', 'value': 'ALL'}
+                    ],
+                    value='ALL'
+                ),
+                html.Button('Update Graph', id='update-graph-btn')
+            ], style={'width': '50%', 'margin': 'auto', 'text-align': 'center', 'padding': '10px'}),
 
             dcc.Graph(
                 id='map-graph',
@@ -102,23 +127,26 @@ def render_content(tab):
             ]),
         ], style={'width': '70%', 'margin': 'auto'})
 
-# Callback to update the map graph based on the selected year
+# Callback to update the map graph based on the selected options
 @app.callback(
     Output('map-graph', 'figure'),
-    [Input('year-slider', 'value')]
+    [Input('update-graph-btn', 'n_clicks')],
+    [State('state-dropdown', 'value'),
+     State('sex-dropdown', 'value'),
+     State('race-dropdown', 'value')]
 )
-def update_figure(selected_year):
-    df = data.graph(selected_year)  # Update dataframe based on the selected year
+def update_figure(n_clicks, state, sex, race):
+    df = data.graph(state, sex, race)  # Update dataframe based on the selected options
     fig = px.choropleth_mapbox(df,
                                 geojson=df.geometry,
                                 locations=df.index,
-                                hover_name=df.state_name,
-                                color="avg_distance",
+                                color="avg_time",
                                 center={"lat": 37.0902, "lon": -95.7129},
                                 mapbox_style="carto-positron",
-                                zoom=2.5)
+                                range_color=[0, 20],
+                                zoom=3)
     return fig
 
 # Run the app
 if __name__ == '__main__':
-    app.run_server(debug=False, host="0.0.0.0", port=7050)
+    app.run_server(debug=True, host="0.0.0.0", port=7050)

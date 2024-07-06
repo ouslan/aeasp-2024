@@ -18,11 +18,10 @@ class DataPull:
         self.codes = self.pull_state_codes()
         self.pull_counties()
         self.county_codes  = self.pull_county_codes()
-        self.pull_states()
-        self.pull_blocks()
-        self.pull_pumas()
-        #self.pull_lodes(2006)
-        #self.pull_roads()
+        # self.pull_states()
+        # self.pull_blocks()
+        # self.pull_pumas()
+        # self.pull_roads()
     
     def pull_movs(self) -> pl.DataFrame:
         
@@ -38,7 +37,7 @@ class DataPull:
             codes = codes.select(pl.col("state_abbr", "fips", "state_name")).unique()
             codes.write_parquet("data/external/state_codes.parquet")
             if self.debug:
-                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing state_codes.parquet")
+                print("\033[0;36mPROCESS: \033[0m" + "Finished processing state_codes.parquet")
         return pl.read_parquet("data/external/state_codes.parquet")
     
     def pull_county_codes(self) -> pl.DataFrame:
@@ -48,18 +47,18 @@ class DataPull:
             codes["county_id"] = codes["STATEFP"] + codes["COUNTYFP"]
             code = self.codes.select(pl.col("fips")).to_series().to_list()
             codes = codes[codes["STATEFP"].astype(int).isin(code)].reset_index().copy()
-            codes = pl.from_pandas(codes[["STATEFP", "COUNTYFP", "county_id", "NAME"]]).write_parquet("data/external/county_codes.parquet")
+            codes[["STATEFP", "COUNTYFP", "county_id", "NAME"]].to_parquet("data/external/county_codes.parquet")
             if self.debug:
-                print("\033[0;36mPROCESS: \033[0m" + f"Finished processing county_codes.parquet")
+                print("\033[0;36mPROCESS: \033[0m" + "Finished processing county_codes.parquet")
         return pl.read_parquet("data/external/county_codes.parquet")
     
     def pull_states(self) -> None:
         
-        self.pull_file("https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip", "data/shape_files/states.zip")
+        self.pull_file("https://www2.census.gov/geo/tiger/GENZ2019/shp/cb_2019_us_state_500k.zip", "data/shape_files/states.zip")
 
     def pull_counties(self) -> None:
         
-        self.pull_file("https://www2.census.gov/geo/tiger/TIGER2019/COUNTY/tl_2019_us_county.zip", "data/shape_files/counties.zip")
+        self.pull_file("https://www2.census.gov/geo/tiger/TIGER2017/COUNTY/tl_2017_us_county.zip", "data/shape_files/counties.zip")
 
     def pull_blocks(self) -> None:
         
@@ -77,10 +76,10 @@ class DataPull:
 
     def pull_roads(self) -> None:
         
-        for year in range(2010, 2020):
+        for year in range(2012, 2020):
             for county_id, county_name in self.county_codes.select(pl.col("county_id", "NAME")).rows():
                 url = f"https://www2.census.gov/geo/tiger/TIGER{year}/ROADS/tl_{year}_{county_id}_roads.zip"
-                file_name = f"data/shape_files/roads_{year}_{county_name}.zip"
+                file_name = f"data/shape_files/roads_{year}_{county_id}.zip"
                 self.pull_file(url, file_name)
 
     def pull_acs(self) -> None:
