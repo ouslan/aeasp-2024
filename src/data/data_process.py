@@ -54,32 +54,33 @@ class DataProcess(DataPull):
         ]
         acs = pl.DataFrame(empty_df).clear()
 
-        for file in os.listdir("data/raw"):
-            if file.startswith("acs"):
-                original = pl.read_parquet(f"data/raw/{file}")
-                for sex in [1, 2, 3]:
-                    for race in ["RACAIAN","RACASN","RACBLK","RACNUM","RACWHT","RACSOR","HISP","ALL",]:
-                        df = original
-                        if not sex == 3:
-                            df = df.filter(pl.col("SEX") == sex)
-                        if not race == "ALL":
-                            df = df.filter(pl.col(race) == 1)
-                        df = df.filter(pl.col("JWMNP") > 0)
-                        df = df.select("year", "state", "PUMA", "PWGTP", "JWMNP")
-                        df = df.with_columns(total_time=(pl.col("PWGTP") * pl.col("JWMNP")))
-                        df = df.group_by("year", "state", "PUMA").agg(
-                                                                      pl.col("PWGTP", "total_time").sum())
-                        df = df.select("year","state", "PUMA", "PWGTP",
-                                       (pl.col("total_time") / pl.col("PWGTP")).alias("avg_time"),
-                                      )
-                        df = df.with_columns(
-                                             sex=pl.lit(sex),
-                                             race=pl.lit(race),
-                        )
-                        acs = pl.concat([acs, df], how="vertical")
-        acs.write_parquet("data/interim/acs.parquet")
-        if self.debug:
-            print("\033[0;36mINFO: \033[0m" + "Finished processing acs")
+        if not os.path.exists("data/processed/acs.parquet"):
+            for file in os.listdir("data/raw"):
+                if file.startswith("acs"):
+                    original = pl.read_parquet(f"data/raw/{file}")
+                    for sex in [1, 2, 3]:
+                        for race in ["RACAIAN","RACASN","RACBLK","RACNUM","RACWHT","RACSOR","HISP","ALL",]:
+                            df = original
+                            if not sex == 3:
+                                df = df.filter(pl.col("SEX") == sex)
+                            if not race == "ALL":
+                                df = df.filter(pl.col(race) == 1)
+                            df = df.filter(pl.col("JWMNP") > 0)
+                            df = df.select("year", "state", "PUMA", "PWGTP", "JWMNP")
+                            df = df.with_columns(total_time=(pl.col("PWGTP") * pl.col("JWMNP")))
+                            df = df.group_by("year", "state", "PUMA").agg(
+                                                                        pl.col("PWGTP", "total_time").sum())
+                            df = df.select("year","state", "PUMA", "PWGTP",
+                                        (pl.col("total_time") / pl.col("PWGTP")).alias("avg_time"),
+                                        )
+                            df = df.with_columns(
+                                                sex=pl.lit(sex),
+                                                race=pl.lit(race),
+                            )
+                            acs = pl.concat([acs, df], how="vertical")
+            acs.write_parquet("data/processed/acs.parquet")
+            if self.debug:
+                print("\033[0;36mINFO: \033[0m" + "Finished processing acs")
 
     def process_roads(self):
         roads = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])

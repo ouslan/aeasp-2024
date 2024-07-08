@@ -44,8 +44,8 @@ def render_content(tab):
                 dcc.Dropdown(
                     id='sex-dropdown',
                     options=[
-                        {'label': 'Male', 'value': 0},
-                        {'label': 'Female', 'value': 1},
+                        {'label': 'Male', 'value': 1},
+                        {'label': 'Female', 'value': 2},
                         {'label': 'All', 'value': 3}
                     ],
                     value=3
@@ -143,7 +143,8 @@ def update_figure(n_clicks, state, sex, race):
                                 color="avg_time",
                                 center={"lat": 37.0902, "lon": -95.7129},
                                 mapbox_style="carto-positron",
-                                range_color=[0, 20],
+                                range_color=[0, 45],
+                                color_continuous_scale="Viridis",
                                 zoom=3)
     return fig
 
