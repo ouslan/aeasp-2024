@@ -164,7 +164,11 @@ data/raw
 data/shape_files
 data/interim
 data/external
-notebooks/
+*.ipynb
+*.css
+*.woff
+*.js
+*.html
 #force to keep the pnb.csv file in data/external
 
 .DS_Store

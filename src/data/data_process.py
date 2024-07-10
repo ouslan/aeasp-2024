@@ -2,9 +2,7 @@ from src.data.data_pull import DataPull
 import geopandas as gpd
 import pandas as pd
 import polars as pl
-import numpy as np
 import os
-
 
 class DataProcess(DataPull):
     def __init__(self, debug=False):
@@ -83,13 +81,12 @@ class DataProcess(DataPull):
                 print("\033[0;36mINFO: \033[0m" + "Finished processing acs")
 
     def process_roads(self):
-        roads = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])
         
         for year in range(2012, 2019):
             roads_df = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])
             if os.path.exists(f"data/interim/roads_{year}.gpkg"):
                 continue
-            for file in os.listdir(f"data/shape_files/"):
+            for file in os.listdir("data/shape_files/"):
                 if file.startswith(f"roads_{year}"):
                     gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
                     gdf.rename(columns={"LINEARID": "linear_id"}, inplace=True)

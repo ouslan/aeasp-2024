@@ -1,0 +1,111 @@
+---
+title: "Graph development"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+```{python}
+import os 
+os.chdir('..')
+```
+
+```{python}
+import polars as pl
+import pandas as pd
+import geopandas as gpd
+```
+
+```{python}
+roads_df = gpd.read_file("data/interim/roads_2012_06.gpkg", engine="pyogrio")
+puma = gpd.read_file("data/interim/puma_06.gpkg", engine="pyogrio")
+tmp_puma = puma[(puma["geo_id"] == "0600101")].copy().reset_index(drop=True)
+clipped = roads_df.clip(tmp_puma['geometry'])
+```
+
+```{python}
+base = tmp_puma.plot(color='white', edgecolor='black')
+clipped.plot(ax=base, marker='o', color='red', markersize=5)
+```
+
+```{python}
+clipped.length.sum()
+```
+
+```{python}
+empty_df = [
+  pl.Series("year", [], dtype=pl.Int64),
+  pl.Series("puma_id", [], dtype=pl.String),
+  pl.Series("leangth", [], dtype=pl.Float64)
+]
+df = pl.DataFrame(empty_df)
+puma2 = puma[puma["geo_id"].str.startswith("06")]
+for pum in puma2["geo_id"]:
+    tmp = puma.loc[puma["geo_id"] == pum]
+    clipped = roads_df.clip(tmp['geometry'])
+    leng = pl.DataFrame(
+      {
+        "year": 2012,
+        "puma_id": pum,
+        "leangth": clipped.length.sum()
+      }
+    )
+    df = pl.concat([df, leng], how="vertical")
+print(df)
+```
+
+```{python}
+def process(roads, state_id, pumas_df, year):
+  empty_df = [
+              pl.Series("year", [], dtype=pl.Int64),
+              pl.Series("puma_id", [], dtype=pl.String),
+              pl.Series("leangth", [], dtype=pl.Float64)
+             ]
+  df = pl.DataFrame(empty_df)
+  pumas = pumas_df[pumas_df["geo_id"].str.startswith(state_id)]
+  for puma in pumas["geo_id"]:
+      tmp = pumas.loc[pumas["geo_id"] == puma]
+      clipped = roads.clip(tmp['geometry'])
+      leng = pl.DataFrame(
+        {
+          "year": year,
+          "puma_id": puma,
+          "leangth": clipped.length.sum()
+        }
+      )
+      df = pl.concat([df, leng], how="vertical")
+      print("\033[0;35mINFO: \033[0m" + f"Finished processing roads for {puma}")
+  return df
+```
+
+```{python}
+temp = process(roads_df, "06", puma, 2012)
+temp
+```
+
+
+```{python}
+empty_df = [
+            pl.Series("year", [], dtype=pl.Int64),
+            pl.Series("puma_id", [], dtype=pl.String),
+            pl.Series("leangth", [], dtype=pl.Float64)
+           ]
+data = pl.DataFrame(empty_df)
+for year in range(2012, 2019):
+  roads_df = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])
+  for file in os.listdir("data/shape_files/"):
+    if file.startswith(f"roads_{year}_06"):
+      gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+      gdf.rename(columns={"LINEARID": "linear_id"}, inplace=True)
+      gdf[["county_id", "year"]] = "01063", 2012
+      gdf = gdf[["year", "linear_id", "county_id", "geometry"]].set_crs(3857, allow_override=True)
+      roads_df = pd.concat([roads_df, gdf], ignore_index=True)
+      print("\033[0;36mINFO: \033[0m" + f"Finished processing roads for {file}")
+    
+  data = pl.concat([data, process(roads_df, "06", puma, year)], how="vertical")
+```
+
+```{python}
+data.write_parquet("data/processed/roads_final_06.parquet")
+```
