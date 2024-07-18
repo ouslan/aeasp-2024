@@ -45,6 +45,7 @@ df_acs
 master_df = df_acs.merge(df_roads, on=["puma_id", "year"], how="left")
 master_df = master_df.sort_values(by=["year", "puma_id"], ascending=True).reset_index(drop=True)
 master_df["length"] = master_df["length"] / 1000
+master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] = master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] / 1000
 master_df
 ```
 
@@ -55,14 +56,29 @@ wq = weights.contiguity.Queen.from_dataframe(puma, geom_col="geometry", ids="pum
 ```{python}
 y_reshaped = master_df["avg_time"].values.reshape(-1, 1)
 #master_df["length2"] = (master_df["length"])**2
-x_reshaped = (master_df[['length', 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'home']]).values
+x_reshaped = (master_df[['length', 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'HINCP']]).values
 
 fe_lag = spreg.Panel_FE_Lag(
     y=y_reshaped, 
     x=x_reshaped,
     name_y=["avg_time"],
-    name_x=["road_length", 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'home'],
+    name_x=["road_length", 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'Median Income'],
     w=wq)
 
 print(fe_lag.summary)
+```
+
+```{python}
+coef = fe_lag.betas
+z_stat = fe_lag.z_stat
+name = fe_lag.name_x
+df_tabel = pd.DataFrame(list(zip(name, coef, z_stat)), columns=["name", "coef", "z_stat"])
+# remove list from dataframe
+df_tabel["coef"] = df_tabel["coef"].apply(lambda x: x[0]).round(3)
+df_tabel["z_value"] = df_tabel["z_stat"].apply(lambda x: x[0]).round(3)
+df_tabel["p-value"] = df_tabel["z_stat"].apply(lambda x: x[1]).round(3)
+df_tabel["star"] = df_tabel["p-value"].apply(lambda x: "***" if x <= 0.001 else "**" if x <= 0.01 else "*" if x <= 0.05 else "")
+df_tabel["z_value"] = df_tabel["z_value"].astype(str) + df_tabel["star"]
+df_tabel = df_tabel[["name", "coef", "z_value"]]
+df_tabel.to_csv("data/processed/all-female.csv")
 ```

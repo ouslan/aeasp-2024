@@ -1,0 +1,159 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Graph development\"\n",
+        "format:\n",
+        "  html:\n",
+        "    code-fold: true\n",
+        "jupyter: python3\n",
+        "---"
+      ],
+      "id": "7ffe2fa2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import os\n",
+        "os.chdir(\"..\")"
+      ],
+      "id": "a256727b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "import polars as pl\n",
+        "import numpy as np\n",
+        "import plotly.express as px\n",
+        "import geopandas as gpd\n",
+        "import spreg\n",
+        "import numpy\n",
+        "import libpysal\n",
+        "from pysal.lib import weights"
+      ],
+      "id": "96ce8518",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "puma = gpd.read_file(\"data/interim/puma.gpkg\", engine=\"pyogrio\")\n",
+        "df_roads = pd.read_parquet(\"data/processed/roads.parquet\")\n",
+        "df_acs = pd.read_parquet(\"data/processed/acs.parquet\")"
+      ],
+      "id": "5647a986",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "puma.sort_values(\"puma_id\", inplace=True)\n",
+        "puma.reset_index(drop=True, inplace=True)\n",
+        "puma"
+      ],
+      "id": "b96b1a11",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df_acs[\"puma_id\"] = df_acs[\"state\"].astype(str).str.zfill(2) + df_acs[\"PUMA\"].astype(str).str.zfill(5)\n",
+        "df_acs = df_acs[(df_acs[\"year\"] >= 2012) & (df_acs[\"race\"] == \"ALL\") & (df_acs[\"sex\"] == 2)].reset_index(drop=True)\n",
+        "df_acs"
+      ],
+      "id": "290b9f50",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "master_df = df_acs.merge(df_roads, on=[\"puma_id\", \"year\"], how=\"left\")\n",
+        "master_df = master_df.sort_values(by=[\"year\", \"puma_id\"], ascending=True).reset_index(drop=True)\n",
+        "master_df[\"length\"] = master_df[\"length\"] / 1000\n",
+        "master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] = master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] / 1000\n",
+        "master_df"
+      ],
+      "id": "17fdd509",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "wq = weights.contiguity.Queen.from_dataframe(puma, geom_col=\"geometry\", ids=\"puma_id\")"
+      ],
+      "id": "4b305766",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_reshaped = master_df[\"avg_time\"].values.reshape(-1, 1)\n",
+        "#master_df[\"length2\"] = (master_df[\"length\"])**2\n",
+        "x_reshaped = (master_df[['length', 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'HINCP']]).values\n",
+        "\n",
+        "fe_lag = spreg.Panel_FE_Lag(\n",
+        "    y=y_reshaped, \n",
+        "    x=x_reshaped,\n",
+        "    name_y=[\"avg_time\"],\n",
+        "    name_x=[\"road_length\", 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'Median Income'],\n",
+        "    w=wq)\n",
+        "\n",
+        "print(fe_lag.summary)"
+      ],
+      "id": "8a2e9c4b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "coef = fe_lag.betas\n",
+        "z_stat = fe_lag.z_stat\n",
+        "name = fe_lag.name_x\n",
+        "df_tabel = pd.DataFrame(list(zip(name, coef, z_stat)), columns=[\"name\", \"coef\", \"z_stat\"])\n",
+        "# remove list from dataframe\n",
+        "df_tabel[\"coef\"] = df_tabel[\"coef\"].apply(lambda x: x[0]).round(3)\n",
+        "df_tabel[\"z_value\"] = df_tabel[\"z_stat\"].apply(lambda x: x[0]).round(3)\n",
+        "df_tabel[\"p-value\"] = df_tabel[\"z_stat\"].apply(lambda x: x[1]).round(3)\n",
+        "df_tabel[\"star\"] = df_tabel[\"p-value\"].apply(lambda x: \"***\" if x <= 0.001 else \"**\" if x <= 0.01 else \"*\" if x <= 0.05 else \"\")\n",
+        "df_tabel[\"z_value\"] = df_tabel[\"z_value\"].astype(str) + df_tabel[\"star\"]\n",
+        "df_tabel = df_tabel[[\"name\", \"coef\", \"z_value\"]]\n",
+        "df_tabel.to_csv(\"data/processed/all-female.csv\")"
+      ],
+      "id": "216e9eea",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/coder/miniforge3/envs/mov/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

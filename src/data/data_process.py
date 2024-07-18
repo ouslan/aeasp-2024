@@ -60,6 +60,7 @@ class DataProcess(DataPull):
             pl.Series("walking", [], dtype=pl.Int64),
             pl.Series("home", [], dtype=pl.Int64),
             pl.Series("other", [], dtype=pl.Int64),
+            pl.Series("HINCP", [], dtype=pl.Float64),
             pl.Series("avg_time", [], dtype=pl.Float64),
             pl.Series("sex", [], dtype=pl.Int32),
             pl.Series("race", [], dtype=pl.String),
