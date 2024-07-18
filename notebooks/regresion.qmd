@@ -15,60 +15,54 @@ os.chdir("..")
 import pandas as pd
 import polars as pl
 import numpy as np
+import plotly.express as px
 import geopandas as gpd
 import spreg
 import numpy
 import libpysal
-import spreg
 from pysal.lib import weights
 ```
 
 ```{python}
-puma = gpd.read_file("data/interim/puma_06.gpkg", engine="pyogrio")
-df_roads = pd.read_parquet("data/processed/roads_final_06.parquet")
+puma = gpd.read_file("data/interim/puma.gpkg", engine="pyogrio")
+df_roads = pd.read_parquet("data/processed/roads.parquet")
 df_acs = pd.read_parquet("data/processed/acs.parquet")
 ```
 
 ```{python}
+puma.sort_values("puma_id", inplace=True)
+puma.reset_index(drop=True, inplace=True)
+puma
+```
+
+```{python}
 df_acs["puma_id"] = df_acs["state"].astype(str).str.zfill(2) + df_acs["PUMA"].astype(str).str.zfill(5)
-df_acs = df_acs[(df_acs["state"] == 6) & (df_acs["year"] >= 2012) & (df_acs["race"] == "ALL") &  (df_acs["year"] <= 2018)].reset_index(drop=True)
+df_acs = df_acs[(df_acs["year"] >= 2012) & (df_acs["race"] == "ALL") & (df_acs["sex"] == 2)].reset_index(drop=True)
 df_acs
 ```
 
 ```{python}
 master_df = df_acs.merge(df_roads, on=["puma_id", "year"], how="left")
-master_df = master_df[["year", "puma_id", "avg_time", "leangth"]].sort_values(by=["year", "puma_id"], ascending=True).reset_index(drop=True)
+master_df = master_df.sort_values(by=["year", "puma_id"], ascending=True).reset_index(drop=True)
+master_df["length"] = master_df["length"] / 1000
 master_df
 ```
 
 ```{python}
-puma_06 = puma[puma["geo_id"].str.startswith("06")].reset_index(drop=True)
-puma_06.rename(columns={"geo_id": "puma_id"}, inplace=True)
-puma_06
-```
-
-```{python}
-wq = weights.contiguity.Queen.from_dataframe(puma_06, geom_col="geometry", ids="puma_id")
-wq.transform = 'r'
-```
-
-```{python}
-master_df["avg_time"].values
+wq = weights.contiguity.Queen.from_dataframe(puma, geom_col="geometry", ids="puma_id")
 ```
 
 ```{python}
 y_reshaped = master_df["avg_time"].values.reshape(-1, 1)
-x_reshaped = master_df["leangth"].values.reshape(-1, 1)
-
-print(f"x shape: {x.shape}, y shape: {y.shape}")  # Check the shape of x and y
+#master_df["length2"] = (master_df["length"])**2
+x_reshaped = (master_df[['length', 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'home']]).values
 
 fe_lag = spreg.Panel_FE_Lag(
     y=y_reshaped, 
-    x=x_reshaped, 
+    x=x_reshaped,
+    name_y=["avg_time"],
+    name_x=["road_length", 'car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking', 'home'],
     w=wq)
 
 print(fe_lag.summary)
 ```
-
-```{python}
-

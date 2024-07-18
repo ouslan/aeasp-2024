@@ -18,10 +18,11 @@ class DataPull:
         self.codes = self.pull_state_codes()
         self.pull_counties()
         self.county_codes  = self.pull_county_codes()
-        # self.pull_states()
+        self.pull_states()
         # self.pull_blocks()
-        # self.pull_pumas()
-        # self.pull_roads()
+        self.pull_pumas()
+        self.pull_roads()
+        self.pull_acs()
     
     def pull_movs(self) -> pl.DataFrame:
         
@@ -88,6 +89,14 @@ class DataPull:
                     pl.Series("JWMNP", [], dtype=pl.Int64),
                     pl.Series("SEX", [], dtype=pl.Int64),
                     pl.Series("ST", [], dtype=pl.Int64),
+                    pl.Series("ADJHSG", [], dtype=pl.String),
+                    pl.Series("ADJINC", [], dtype=pl.String),
+                    pl.Series("AGEP", [], dtype=pl.Int64),
+                    pl.Series("CIT", [], dtype=pl.Int64),
+                    pl.Series("JWTR", [], dtype=pl.Int64), #ceck
+                    pl.Series("JWRIP", [], dtype=pl.Int64),
+                    pl.Series("OC", [], dtype=pl.Int64),
+                    pl.Series("HINCP", [], dtype=pl.Int64),
                     pl.Series("RACAIAN", [], dtype=pl.Int64),
                     pl.Series("RACASN", [], dtype=pl.Int64),
                     pl.Series("RACBLK", [], dtype=pl.Int64),
@@ -101,30 +110,36 @@ class DataPull:
                     pl.Series("state", [], dtype=pl.Int64),
                     pl.Series("year", [], dtype=pl.Int64),
                     ]
-        
-        param = 'JWMNP,SEX,ST,RACAIAN,RACASN,RACBLK,RACNUM,RACWHT,RACSOR,HISP,PWGTP,COW,PUMA'
+
+        param = 'JWMNP,SEX,ST,ADJHSG,ADJINC,AGEP,CIT,JWTR,JWRIP,OC,HINCP,RACAIAN,RACASN,RACBLK,RACNUM,RACWHT,RACSOR,HISP,PWGTP,COW,PUMA'
         base = 'https://api.census.gov/data/'
         flow = '/acs/acs1/pums'
         key = os.environ.get('CENSUS_API_KEY')
-        
-        for year in range(2008,2009):
-            
+
+        for year in range(2012,2020):
+
             if os.path.exists(f"data/raw/acs_{year}.parquet"):
                 print("\033[0;32mINFO: \033[0m" + f"ACS data for {year} already exists")
                 continue
+
             else:
                 acs = pl.DataFrame(empty_df).clear()
-                
+                if year == 2019:
+                    param = param.replace("JWTR", "JWTRNS")
+
                 for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
                     url = f'{base}{year}{flow}?get={param}&for=state:{str(state).zfill(2)}&key={key}'
-                    
+
                     try:
                         r = requests.get(url).json()
                         df = pl.DataFrame(r)
                         names = df.select(pl.col("column_0")).transpose()
                         df = df.drop("column_0").transpose()
-                        df = df.rename(names.to_dicts().pop()).with_columns(year=pl.lit(year)).select(pl.col("*").cast(pl.Int64))
+                        df = df.rename(names.to_dicts().pop()).with_columns(year=pl.lit(year))
+                        df = df.with_columns(pl.col("*").exclude("ADJHSG","ADJINC").cast(pl.Int64))
+                        df = df.rename({"JWTRNS": "JWTR"})
                         acs = pl.concat([acs, df], how="vertical")
+                        print("\033[0;32mINFO: \033[0m" + f"Downloaded ACS data for {name} {year}")
 
                     except RequestException as e:
                         print("\033[1;33mWARNING:  \033[0m" + f"Could not download ACS data for {name} {year} {e}")

@@ -1,0 +1,142 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Travel Time and Spatial Patterns in road Infrastructure\"\n",
+        "author: \"Alejandro Ouslan\"\n",
+        "format:\n",
+        "  revealjs:\n",
+        "    logo: assets/logo-aeasp.jpeg\n",
+        "    footer: \"AEASP 2024\"\n",
+        "---\n",
+        "\n",
+        "\n",
+        "## Research question\n",
+        "\n",
+        "- We are looking at the relationship between road length and average comute time on a particular puma\n",
+        "- How does the changes in road lenth of a particular PUMA affect the average comute time of neighboring PUMAs?\n"
+      ],
+      "id": "4d828bc0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import os\n",
+        "os.chdir(\"..\")\n",
+        "import plotly.express as px\n",
+        "import pandas as pd\n",
+        "import geopandas as gpd\n",
+        "puma = gpd.read_file(\"data/interim/puma.gpkg\", engine=\"pyogrio\")\n",
+        "df_roads = pd.read_parquet(\"data/processed/roads.parquet\")\n",
+        "df_acs = pd.read_parquet(\"data/processed/acs.parquet\")\n",
+        "puma.sort_values(\"puma_id\", inplace=True)\n",
+        "puma.reset_index(drop=True, inplace=True)\n",
+        "df_acs[\"puma_id\"] = df_acs[\"state\"].astype(str).str.zfill(2) + df_acs[\"PUMA\"].astype(str).str.zfill(5)\n",
+        "df_acs = df_acs[(df_acs[\"year\"] >= 2012) & (df_acs[\"race\"] == \"ALL\") & (df_acs[\"sex\"] == 3)].reset_index(drop=True)\n",
+        "master_df = df_acs.merge(df_roads, on=[\"puma_id\", \"year\"], how=\"left\")\n",
+        "master_df = master_df[[\"year\", \"puma_id\", \"avg_time\", \"length\"]].sort_values(by=[\"year\", \"puma_id\"], ascending=True).reset_index(drop=True)\n",
+        "master_df[\"length\"] = master_df[\"length\"] / 1000\n",
+        "master_df = master_df[master_df[\"state\"] == \"06\"]"
+      ],
+      "id": "45e6fea0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Maps \n"
+      ],
+      "id": "93610113"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fig = px.choropleth_mapbox(master_df,\n",
+        "                            geojson=puma.geometry,\n",
+        "                            locations=master_df.index,\n",
+        "                            color=\"avg_time\",\n",
+        "                            center={\"lat\": 37.0902, \"lon\": -95.7129},\n",
+        "                            mapbox_style=\"carto-positron\",\n",
+        "                            range_color=[0, 45],\n",
+        "                            color_continuous_scale=\"Viridis\",\n",
+        "                            zoom=3)\n",
+        "fig.show()"
+      ],
+      "id": "11c8d07b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Methods \n",
+        "\n",
+        "- 2351 PUMAs (statistical geographic areas containing no fewer than 100,000 people each.)\n",
+        "- 8 years of data\n",
+        "- 18808 observations\n",
+        "- Spatial Lag Panel Model with Fixed Effects:\n",
+        "$$y_{it} = \\rho \\sum_{j=1}^N w_{ij} y_{jt}  +  x_{it} \\beta  +  \\mu_i  +  e_{it}$$\n",
+        "\n",
+        "## Weights \n",
+        "\n",
+        "![weights](assets/queens.png)\n",
+        "\n",
+        "## Results Pt.1\n",
+        "\n",
+        "| Variable | Left | Right | Center |\n",
+        "|---------|:-----|------:|:------:|\n",
+        "| Spatial Average Weight      | 12   |    12 |   12   |\n",
+        "| 123     | 123  |   123 |  123   |\n",
+        "| 1       | 1    |     1 |   1    |\n",
+        "\n",
+        ": Demonstration of pipe table syntax\n",
+        "\n",
+        "\n",
+        "## Results Pt.2\n",
+        "\n",
+        "::: {#tbl-panel layout-ncol=2}\n",
+        "| Variable | All | Black |\n",
+        "|------|------|------|\n",
+        "| Spatial splilover | B    | C    |\n",
+        "| Road Length | F    | G    |\n",
+        "| A    | G    | G    |\n",
+        "\n",
+        ": Male {#tbl-first}\n",
+        "\n",
+        "| Col1 | Col2 | Col3 |\n",
+        "|------|------|------|\n",
+        "| A    | B    | C    |\n",
+        "| E    | F    | G    |\n",
+        "| A    | G    | G    |\n",
+        "\n",
+        ": Female {#tbl-second}\n",
+        "\n",
+        "Main Caption\n",
+        ":::\n",
+        "\n",
+        "See @tbl-panel for details, especially @tbl-second.\n",
+        "\n",
+        "## Conclusion & clossing remarks"
+      ],
+      "id": "2d847819"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/coder/miniforge3/envs/mov/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
