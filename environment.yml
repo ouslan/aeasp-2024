@@ -20,3 +20,4 @@ dependencies:
       - geoarrow-rust-core==0.2.0
       - python-dotenv==1.0.1
       - pyogrio==0.8.0
+      - cpi==1.1.7

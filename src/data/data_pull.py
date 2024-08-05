@@ -114,7 +114,6 @@ class DataPull:
         param = 'JWMNP,SEX,ST,ADJHSG,ADJINC,AGEP,CIT,JWTR,JWRIP,OC,HINCP,RACAIAN,RACASN,RACBLK,RACNUM,RACWHT,RACSOR,HISP,PWGTP,COW,PUMA'
         base = 'https://api.census.gov/data/'
         flow = '/acs/acs1/pums'
-        key = os.environ.get('CENSUS_API_KEY')
 
         for year in range(2012,2020):
 
@@ -128,7 +127,7 @@ class DataPull:
                     param = param.replace("JWTR", "JWTRNS")
 
                 for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
-                    url = f'{base}{year}{flow}?get={param}&for=state:{str(state).zfill(2)}&key={key}'
+                    url = f'{base}{year}{flow}?get={param}&for=state:{str(state).zfill(2)}&key={self.key}'
 
                     try:
                         r = requests.get(url).json()
@@ -137,7 +136,8 @@ class DataPull:
                         df = df.drop("column_0").transpose()
                         df = df.rename(names.to_dicts().pop()).with_columns(year=pl.lit(year))
                         df = df.with_columns(pl.col("*").exclude("ADJHSG","ADJINC").cast(pl.Int64))
-                        df = df.rename({"JWTRNS": "JWTR"})
+                        if year == 2019:
+                            df = df.rename({"JWTRNS": "JWTR"})
                         acs = pl.concat([acs, df], how="vertical")
                         print("\033[0;32mINFO: \033[0m" + f"Downloaded ACS data for {name} {year}")
 
