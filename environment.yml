@@ -17,6 +17,7 @@ dependencies:
   - geoalchemy2=0.15.1
   - nbformat=5.10.4
   - spreg=1.5.0
+  - pysal=24.7
   - pip:
       - geoarrow-rust-core==0.2.0
       - python-dotenv==1.0.1

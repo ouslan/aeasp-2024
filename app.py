@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc, Input, Output, State
 import pandas as pd
 import plotly.express as px
-from src.visualization.data_graph import DataGraph  # Assuming DataGraph is a custom class
+from src.visualization.data_graph import DataGraph
 
 # Initialize the Dash app
 app = Dash(__name__, suppress_callback_exceptions=True, meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
@@ -12,6 +12,9 @@ server = app.server
 data = DataGraph()
 state_codes = pd.read_parquet("data/external/state_codes.parquet").sort_values(by='fips')
 state_options = [{'label': state_name, 'value': state_code} for state_name, state_code in zip(state_codes['state_name'], state_codes['fips'])]
+
+# Create a list of years for the slider
+years = list(range(2012, 2020))
 
 # Define the layout of the app
 app.layout = html.Div([
@@ -69,6 +72,30 @@ def render_content(tab):
                     ],
                     value='ALL'
                 ),
+                dcc.Dropdown(
+                    id='mode-dropdown',
+                    options=[
+                        {'label': 'Car', 'value': 'car'},
+                        {'label': 'Bus', 'value': 'bus'},
+                        {'label': 'Streetcar', 'value': 'streetcar'},
+                        {'label': 'Subway', 'value': 'subway'},
+                        {'label': 'Railroad', 'value': 'railroad'},
+                        {'label': 'Ferry', 'value': 'ferry'},
+                        {'label': 'Taxi', 'value': 'taxi'},
+                        {'label': 'Motorcycle', 'value': 'motorcycle'},
+                        {'label': 'Bicycle', 'value': 'bicycle'},
+                        {'label': 'Walking', 'value': 'walking'}
+                    ],
+                    value='car'
+                ),
+                dcc.Slider(
+                    id='year-slider',
+                    min=min(years),
+                    max=max(years),
+                    step=1,
+                    marks={year: str(year) for year in years},
+                    value=min(years)
+                ),
                 html.Button('Update Graph', id='update-graph-btn', n_clicks=0)
             ], style={'width': '50%', 'margin': 'auto', 'text-align': 'center', 'padding': '10px'}),
 
@@ -120,17 +147,20 @@ def render_content(tab):
     [Input('update-graph-btn', 'n_clicks')],
     [State('state-dropdown', 'value'),
      State('sex-dropdown', 'value'),
-     State('race-dropdown', 'value')]
+     State('race-dropdown', 'value'),
+     State('mode-dropdown', 'value'),
+     State('year-slider', 'value')]
 )
-def update_figure(n_clicks, state, sex, race):
-    df = data.graph(state, sex, race)  # Update dataframe based on the selected options
+def update_figure(n_clicks, state, sex, race, mode, year):
+    df = data.graph(state, sex, race)
+    df = df[df['year'] == year]  # Filter data for the selected year
+    
     fig = px.choropleth_mapbox(df,
                                 geojson=df.geometry,
                                 locations=df.index,
-                                color="avg_time",
+                                color=mode,
                                 center={"lat": 37.0902, "lon": -95.7129},
                                 mapbox_style="carto-positron",
-                                range_color=[0, 45],
                                 color_continuous_scale="Viridis",
                                 zoom=3)
     return fig

@@ -1,7 +1,7 @@
 earnotebooks/
 
-# Ignore all pkl files
-*.pkl
+# Ignore all parquet files
+*.parquet
 
 # Ignore all database files
 *.db
@@ -16,9 +16,10 @@ data/shape_files/*.zip
 *.csv.gz
 
 # Exceptions
-!data/shape_files/states.zip
-!data/processed/blocks.parquet
-!data/processed/lodes.parquet
+!data/external/state_codes.parquet
+!data/interim/pumas.gpkg
+!data/processed/acs.parquet
+!data/processed/roads.parquet
 
 # Ignore Python bytecode files
 *.pyc

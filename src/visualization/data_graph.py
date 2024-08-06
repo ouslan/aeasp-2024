@@ -44,11 +44,15 @@ class DataGraph:
         gpd.GeoDataFrame
             A GeoDataFrame containing filtered ACS data with geometries.
         """
-        df = pd.read_parquet('data/processed/acs.parquet')
+        df_roads = pd.read_parquet("data/processed/roads.parquet")
+        df_acs = pd.read_parquet("data/processed/acs.parquet")
+        df_acs["puma_id"] = df_acs["state"].astype(str).str.zfill(2) + df_acs["PUMA"].astype(str).str.zfill(5)
         # df['year'] = pd.to_datetime(df['year'], format='%Y-%m-%d')  # Uncomment if needed
-
-        df = df[(df["year"] == 2019)].reset_index(drop=True)
-        df = df.drop(columns=["year"]).reset_index(drop=True)
+        master_df = df_acs.merge(df_roads, on=["puma_id", "year"], how="left")
+        master_df = master_df.sort_values(by=["year", "puma_id"], ascending=True).reset_index(drop=True)
+        master_df["length"] = master_df["length"] / 1000
+        master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] = master_df[['car', 'bus','streetcar', 'subway', 'railroad', 'ferry', 'taxi','motorcycle','bicycle', 'walking']] / 1000
+        df = master_df.copy()
         df["puma_id"] = df["state"].astype(str).str.zfill(2) + df["PUMA"].astype(str).str.zfill(5)
         df = df.merge(self.puma, on="puma_id", how="inner")
         return gpd.GeoDataFrame(df, geometry=df["geometry"], crs=3857)
