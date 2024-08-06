@@ -13,3 +13,5 @@ python-dotenv==1.0.1
 sqlalchemy==2.0.31
 geoalchemy2==0.15.1
 cpi==1.1.7
+spreg==1.5.0
+pysal==24.7
