@@ -1,4 +1,7 @@
-    
+import polars as pl
+import geopandas as gpd
+import os
+
 class DataLoad:     
     
     def load_mov_data(self) -> pl.DataFrame:

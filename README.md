@@ -1,88 +1,94 @@
-# README
+Certainly! Here’s a README for your project formatted similarly to the provided example:
 
-## Project Overview
+# Unemployment and Travel Distance Visualization
 
-This project visualizes the interaction between unemployment and average travel distance by incorporating spatial patterns. The data
-visualization is done using a Dash web application, which displays a map, project details, and data sources.
+This project visualizes the interaction between unemployment and average travel distance by incorporating spatial patterns. The data visualization is done using a Dash web application, which displays a map, project details, and data sources.
 
-## Requirements
+## Prerequisites
 
-To run this project, ensure you have the following installed:
+Before running the project, make sure you have Python 3.9+ installed and set up a virtual environment:
 
-- Python 3.7+
-- dash
-- plotly
-- pandas
-- geopandas
-- polars
-- numpy
+```bash
+git clone https://github.com/ouslan/mov
+cd mov
+```
 
-You can install the necessary packages using:
+a `.env` in the root directory with the following content:
+
+```bash
+CENSUS_API_KEY=YOUR_API_KEY
+```
+
+### With Conda
+
+You can create a new Conda environment using the provided `environment.yml` file:
+
+```bash
+conda env create -f environment.yml
+```
+
+### With pip
+
+Alternatively, you can install the required libraries with pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+> [!IMPORTANT]  
+> This project uses `polars` as one of its dependencies, which requires Rust to be installed on your system. You can install Rust from the [official Rust website](https://www.rust-lang.org/).
+
+## Usage
+
+To run the Dash application, use the following command:
+
+```bash
+docker-compose up
+```
+
+This will host the Dash application at `http://0.0.0.0:7058`.
+
+## Docker
+
+You can also run the website locally using Docker. To build and start the Docker containers, run:
+
+```bash
+docker-compose up --build
+```
+
+This will host the Dash application at [http://localhost:7050](http://localhost:7050) and the documentation at [http://localhost:8005](http://localhost:8005).
+
 ## File Structure
 
-- `app.py`: Main application file that sets up the Dash app, defines
-  the layout, callbacks,and runs the server.
-- `src/data/data_process.py`: Contains the `DataClean` class that
-  handles data loading, cleaning, and processing.
+- `app.py`: Main application file that sets up the Dash app, defines the layout, callbacks, and runs the server.
+- `src/data/data_pull.py`: Contains the `DataPull` class that handles data retrieval.
+- `src/data/data_process.py`: Contains the `DataClean` class that handles data loading, cleaning, and processing.
+- `src/graphs/data_graph.py`: Contains the `DataGraph` class for processing and visualizing data.
 
 ## Data Sources
 
 The data for this project comes from several sources:
 
-- **LEHD Origin-Destination Employment Statistics** ([LEHD](https://lehd.ces.census.gov/data/lodes/LODES8/)): Data for origin and destination of people by census block.
-- **Mobility, Opportunity, and Volatility Statistics**
-  ([MOVS](https://www.census.gov/programs-surveys/ces/data/public-use-data/mobility-opportunity-volatility-statistics.html)): Average income by race and gender.
-- **GENZ2018** ([GENZ2018](https://www2.census.gov/geo/tiger/GENZ2018/shp/)): Shapes for the states to make the map.
-- **TIGER2023** ([TIGER2023](https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/)): Shapes for the census block for each state.
-- **Data Profile ACS 3-year estimates (DP03)**: Contains most control variables and variables used to create the MOVS dataset at the county level.
+-  [**TIGER2019**](https://www2.census.gov/geo/tiger/TIGER2019/TABBLOCK20/): Shapes for the census PUMAS and for state, as well as historical roads.
+- [**Public Use Microdata Areas (PUMAs)**](https://www.census.gov/programs-surveys/geography/guidance/geo-areas/pumas.html): Contains most control variables
 
-## Usage
+## usage
 
-1. **Data Preparation**
-   The `DataClean` class in `data_process.py` handles the downloading,
-   cleaning, and processing of the necessary data files. When instantiated, it will automatically load or download the required datasets.
+You can use the following package to generate all the data of the project:
+```bash
+python app.py
+```
 
-2. **Running the App**
-   To run the Dash app, execute:
 
-   ```bash
-   docker compose up
-   ```
+> [!IMPORTANT]  
+> It is important to note that this replication will take a while to run. Given my a high end computer with 68GB of RAM and 12 threads, it will take around 22 hours to download and run the project.
 
-   The app will be available at `http://0.0.0.0:7050`.
+> [!WARNING]  
+> The data used for this project is very large, be sure to have enough space on your computer to download it. It requires at least 120GB of free space.
 
-### Application Layout
-
-The app has three main tabs:
-
-1. **Map Tab**: Displays a choropleth map showing the average travel distance by state.
-2. **About Tab**: Provides an introduction to the project and details on the methodology.
-3. **Data Tab**: Lists the data sources used in the project.
-
-### Callbacks
-
-The app includes callbacks to handle interactions:
-
-- **Tab Navigation**: Updates the content based on the selected tab.
-- **Year Slider**: Updates the map based on the selected year.
-
-### Data Processing
-
-The `DataClean` class processes the data in several steps:
-
-1. **Load MOV Data**: Downloads and loads the MOVS data.
-2. **Load Shape Data**: Downloads and loads the shape data.
-3. **Load State Codes**: Loads or generates state codes.
-4. **Load Blocks Data**: Downloads and processes the census blocks data.
-5. **Load LODES Data**: Downloads and processes the LODES data.
-6. **Create Graph Dataset**: Merges the LODES and shape data for graphing.
-
-### Methodology
+> [!CAUTION]
+> Given that the there is a recalculation of the road shape files from counties to PUMAs, and it is done in paraller to save time it maya very resorce intensive to run the project.
+## Methodology
 
 The project uses two regression models:
 
@@ -90,6 +96,16 @@ The project uses two regression models:
 2. **Panel Spatial Regression with Fixed Effects**: Incorporates spatial interaction between neighboring counties. The model used is:
    $$y_{it} = \rho \sum_{j=1}^N w_{ij} y_{jt} + x_{it} \beta + \mu_i + e_{it}$$
 
-### Contact
+## Sponsors
 
-For any queries, feel free to contact the project maintainer.
+<p align="center">
+  <a href="https://www.aeaweb.org/">
+    <img src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e4/American_Economic_Association_logo.svg/2880px-American_Economic_Association_logo.svg.png' alt="AEA Seal" style="width: 150px; height: auto; margin: 0 10px;" />
+  </a>
+  <a href="https://www.census.gov/">
+    <img src='https://upload.wikimedia.org/wikipedia/commons/c/c1/United_States_Census_Bureau_Wordmark.svg' alt="Census Logo" style="width: 150px; height: auto; margin: 0 10px;" />
+  </a>
+  <a href="https://howard.edu/">
+    <img src='https://upload.wikimedia.org/wikipedia/en/thumb/2/21/Howard_University_logo.svg/2880px-Howard_University_logo.svg.png' alt="Howard University Seal" style="width: 150px; height: auto; margin: 0 10px;" />
+  </a>
+</p>
