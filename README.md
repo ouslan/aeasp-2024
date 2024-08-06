@@ -46,6 +46,13 @@ To run the Dash application, use the following command:
 docker-compose up
 ```
 
+## Replication
+
+You can use the following package to generate all the data of the project:
+```bash
+python app.py
+```
+
 This will host the Dash application at `http://0.0.0.0:7058`.
 
 ## Docker
@@ -72,14 +79,6 @@ The data for this project comes from several sources:
 -  [**TIGER2019**](https://www2.census.gov/geo/tiger/TIGER2019/TABBLOCK20/): Shapes for the census PUMAS and for state, as well as historical roads.
 - [**Public Use Microdata Areas (PUMAs)**](https://www.census.gov/programs-surveys/geography/guidance/geo-areas/pumas.html): Contains most control variables
 
-## usage
-
-You can use the following package to generate all the data of the project:
-```bash
-python app.py
-```
-
-
 > [!IMPORTANT]  
 > It is important to note that this replication will take a while to run. Given my a high end computer with 68GB of RAM and 12 threads, it will take around 22 hours to download and run the project.
 
@@ -94,7 +93,9 @@ The project uses two regression models:
 
 1. **OLS Regression**: Estimates coefficients of the MOVS dataset to move data from state level to county level.
 2. **Panel Spatial Regression with Fixed Effects**: Incorporates spatial interaction between neighboring counties. The model used is:
+
    $$y_{it} = \rho \sum_{j=1}^N w_{ij} y_{jt} + x_{it} \beta + \mu_i + e_{it}$$
+
 
 ## Sponsors
 

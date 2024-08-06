@@ -24,7 +24,7 @@ from pysal.lib import weights
 ```
 
 ```{python}
-puma = gpd.read_file("data/interim/puma.gpkg", engine="pyogrio")
+puma = gpd.read_file("data/interim/pumas.gpkg", engine="pyogrio")
 df_roads = pd.read_parquet("data/processed/roads.parquet")
 df_acs = pd.read_parquet("data/processed/acs.parquet")
 ```
