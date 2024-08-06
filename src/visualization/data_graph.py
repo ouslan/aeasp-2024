@@ -9,7 +9,7 @@ class DataGraph:
         self.data = self.load_data()
 
     def load_puma(self) -> gpd.GeoDataFrame:
-        puma = gpd.read_file('data/interim/puma.gpkg', engin="pyogrio")
+        puma = gpd.read_file('data/interim/pumas.gpkg', engin="pyogrio")
         puma["puma_id"] = puma["puma_id"].astype(str).str.zfill(6)
         return puma[["puma_id", "geometry"]]
     

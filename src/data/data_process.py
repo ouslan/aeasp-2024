@@ -32,14 +32,16 @@ class DataProcess(DataPull):
 
     def process_pumas(self):
         puma_df = gpd.GeoDataFrame(columns=["puma_id", "name", "geometry"])
-        for file in os.listdir("data/shape_files"):
-            if file.startswith("puma"):
-                gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio").set_crs(3857, allow_override=True)
-                gdf = gdf[["GEOID10", "NAMELSAD10", "geometry"]].rename(columns={"GEOID10": "puma_id", "NAMELSAD10": "name"})
-                puma_df = pd.concat([puma_df, gdf], ignore_index=True, verify_integrity=True)
+        if not os.path.exists("data/interim/pumas.gpkg"):
+            for file in os.listdir("data/shape_files"):
+                if file.startswith("puma"):
+                    gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio").set_crs(3857, allow_override=True)
+                    gdf = gdf[["GEOID10", "NAMELSAD10", "geometry"]].copy()
+                    gdf = gdf.rename(columns={"GEOID10": "puma_id", "NAMELSAD10": "name"})
+                    puma_df = pd.concat([puma_df, gdf], ignore_index=True, verify_integrity=True)
+            puma_df.to_file("data/interim/pumas.gpkg", driver="GPKG")
         if self.debug:
             print("\033[0;36mINFO: \033[0m" + "Finished processing pumas")
-        return puma_df
 
     def process_acs(self):
         empty_df = [
@@ -118,27 +120,28 @@ class DataProcess(DataPull):
                     ]
         master_df = pl.DataFrame(empty_df).clear()
 
-        for year in range(2012, 2020):
+        if not os.path.exists("data/processed/roads.parquet"):
+            for year in range(2012, 2020):
 
-            for state in self.codes.select(pl.col("fips")).to_series().to_list():
+                for state in self.codes.select(pl.col("fips")).to_series().to_list():
 
-                roads_df = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])
-                for file in os.listdir("data/shape_files/"):
-                    if file.startswith(f"roads_{year}_{str(state).zfill(2)}"):
-                        gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
-                        gdf.rename(columns={"LINEARID": "linear_id"}, inplace=True)
-                        gdf[["county_id", "year"]] = "01063", year
-                        gdf = gdf[["year", "linear_id", "county_id", "geometry"]].set_crs(3857, allow_override=True)
+                    roads_df = gpd.GeoDataFrame(columns=['linear_id', 'year', 'geometry'])
+                    for file in os.listdir("data/shape_files/"):
+                        if file.startswith(f"roads_{year}_{str(state).zfill(2)}"):
+                            gdf = gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+                            gdf.rename(columns={"LINEARID": "linear_id"}, inplace=True)
+                            gdf[["county_id", "year"]] = "01063", year
+                            gdf = gdf[["year", "linear_id", "county_id", "geometry"]].set_crs(3857, allow_override=True)
 
-                        roads_df = pd.concat([roads_df, gdf], ignore_index=True) 
-                        if self.debug:
-                            print("\033[0;36mREAD: \033[0m" + f"Finished processing roads for {file}")
+                            roads_df = pd.concat([roads_df, gdf], ignore_index=True) 
+                            if self.debug:
+                                print("\033[0;36mREAD: \033[0m" + f"Finished processing roads for {file}")
 
-                tmp = self.process_length(roads_df, state, year, empty_df)
-                master_df = pl.concat([master_df, tmp], how="vertical")
-                print("\033[0;35mMERGE STATE: \033[0m" + f"Finished processing roads for {state}")
+                    tmp = self.process_length(roads_df, state, year, empty_df)
+                    master_df = pl.concat([master_df, tmp], how="vertical")
+                    print("\033[0;35mMERGE STATE: \033[0m" + f"Finished processing roads for {state}")
 
-        master_df.write_parquet("data/processed/roads.parquet")
+            master_df.write_parquet("data/processed/roads.parquet")
 
     def process_length(self, roads, state_id, year, empty_df):
         df = pl.DataFrame(empty_df)

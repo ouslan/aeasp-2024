@@ -4,13 +4,13 @@ import plotly.express as px
 from src.visualization.data_graph import DataGraph  # Assuming DataGraph is a custom class
 
 # Initialize the Dash app
-app = Dash(__name__, meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
+app = Dash(__name__, suppress_callback_exceptions=True, meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
 app.title = "Average Travel Time by State and PUMA"
 server = app.server
 
 # Data initialization
 data = DataGraph()
-state_codes = pd.read_parquet("data/external/state_codes.parquet")
+state_codes = pd.read_parquet("data/external/state_codes.parquet").sort_values(by='fips')
 state_options = [{'label': state_name, 'value': state_code} for state_name, state_code in zip(state_codes['state_name'], state_codes['fips'])]
 
 # Define the layout of the app
