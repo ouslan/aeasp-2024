@@ -18,6 +18,15 @@ import geopandas as gpd
 ```
 
 ```{python}
+for file in os.listdir("data/shape_files/"):
+  if file.startswith("roads"):
+    try:
+      gpd.read_file(f"data/shape_files/{file}", engine="pyogrio")
+    except:
+      print(f"Failed to read {file}")
+```
+
+```{python}
 roads_df = gpd.read_file("data/interim/roads_2012_06.gpkg", engine="pyogrio")
 puma = gpd.read_file("data/interim/puma_06.gpkg", engine="pyogrio")
 tmp_puma = puma[(puma["geo_id"] == "0600101")].copy().reset_index(drop=True)
