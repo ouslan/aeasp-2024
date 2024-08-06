@@ -1,5 +1,3 @@
-Certainly! Here’s a README for your project formatted similarly to the provided example:
-
 # Road Infrastructure & it's Effects on Comute Time
 
 This project visualizes the interaction between unemployment and average travel distance by incorporating spatial patterns. The data visualization is done using a Dash web application, which displays a map, project details, and data sources.
@@ -36,7 +34,7 @@ pip install -r requirements.txt
 ```
 
 > [!IMPORTANT]  
-> This project uses `polars` as one of its dependencies, which requires Rust to be installed on your system. You can install Rust from the [official Rust website](https://www.rust-lang.org/).
+> This project uses [`polars`](https://pola.rs/) as one of its dependencies, which requires Rust to be installed on your system. You can install Rust from the [official Rust website](https://www.rust-lang.org/).
 
 ## Usage
 
