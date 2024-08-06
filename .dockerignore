@@ -20,6 +20,7 @@ data/shape_files/*.zip
 !data/interim/pumas.gpkg
 !data/processed/acs.parquet
 !data/processed/roads.parquet
+!data/processed/all.csv
 
 # Ignore Python bytecode files
 *.pyc

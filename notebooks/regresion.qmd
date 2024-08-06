@@ -80,5 +80,5 @@ df_tabel["p-value"] = df_tabel["z_stat"].apply(lambda x: x[1]).round(3)
 df_tabel["star"] = df_tabel["p-value"].apply(lambda x: "***" if x <= 0.001 else "**" if x <= 0.01 else "*" if x <= 0.05 else "")
 df_tabel["z_value"] = df_tabel["z_value"].astype(str) + df_tabel["star"]
 df_tabel = df_tabel[["name", "coef", "z_value"]]
-df_tabel.to_csv("data/processed/all-female.csv")
+df_tabel.to_csv("data/processed/all.csv", index=False)
 ```

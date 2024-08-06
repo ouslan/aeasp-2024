@@ -1,11 +1,12 @@
 from dash import Dash, html, dcc, Input, Output, State
 import pandas as pd
 import plotly.express as px
+from dash import dash_table
 from src.visualization.data_graph import DataGraph
 
 # Initialize the Dash app
 app = Dash(__name__, suppress_callback_exceptions=True, meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
-app.title = "Average Travel Time by State and PUMA"
+app.title = "Road Infrastructure & Its Effects on Commute Time"
 server = app.server
 
 # Data initialization
@@ -13,18 +14,22 @@ data = DataGraph()
 state_codes = pd.read_parquet("data/external/state_codes.parquet").sort_values(by='fips')
 state_options = [{'label': state_name, 'value': state_code} for state_name, state_code in zip(state_codes['state_name'], state_codes['fips'])]
 
+# Load the CSV file
+all_data = pd.read_csv("data/processed/all.csv")
+table_data = all_data[['name', 'coef', 'z_value']]
+
 # Create a list of years for the slider
 years = list(range(2012, 2020))
 
 # Define the layout of the app
 app.layout = html.Div([
     html.Div(id="header", children=[
-        html.H1("Average Travel Time by State and PUMA"),
+        html.H1("Road Infrastructure & Its Effects on Commute Time"),
         dcc.Markdown('''
-            #### Introduction
+            #### Overview
             
-            This is my research for the AEA Summer Program in collaboration with the Census. This project consists of measuring the interaction with unemployment and
-            average travel distance incorporating spatial patterns.
+            This project visualizes the interaction between unemployment and average travel distance by incorporating spatial patterns. 
+            The data visualization is done using a Dash web application, which displays a map, project details, and data sources.
         '''),
         dcc.Tabs(id='tabs-nav', value='map-tab', children=[
             dcc.Tab(label='Map', value='map-tab'),
@@ -112,14 +117,25 @@ def render_content(tab):
             dcc.Markdown('''
                 #### Methodology
                 
-                This project uses two different regressions. The first one is an OLS regression to estimate the coefficients of the MOVS dataset. This is with the objective
-                of moving the data from state level to county level. The second one is the main regression used for the research. I used a Panel spatial regression with fixed effects model.
-                We incorporate space into our regression as it gives us a way to measure the interaction between neighboring counties with each other. The model used is stated as follows:
+                This project uses two different regressions:
                 
+                1. **Panel Spatial Regression with Fixed Effects**: Incorporates spatial interaction between neighboring counties. The model used is:
+
                 $$
                 y_{it} = \\rho \\sum_{j=1}^N w_{ij} y_{jt}  +  x_{it} \\beta  +  \\mu_i  +  e_{it}
                 $$
-            ''', mathjax=True)
+
+                ## Results
+            ''', mathjax=True),
+            dash_table.DataTable(
+                id='coefficients-table',
+                columns=[
+                    {"name": col, "id": col} for col in table_data.columns
+                ],
+                data=table_data.to_dict('records'),
+                style_table={'overflowX': 'auto'},
+                style_cell={'textAlign': 'left'}
+            )
         ], style={'width': '70%', 'margin': 'auto'})
     elif tab == 'data-tab':
         return html.Div([
@@ -129,15 +145,10 @@ def render_content(tab):
             dcc.Markdown('''
                 #### Sources
 
-                The data for this project is obtained from multiple sources, including:
-                - LEHD Origin-Destination Employment Statistics ([LEHD](https://lehd.ces.census.gov/data/lodes/LODES8/)): This dataset
-                contains the data for origin and destination of people by census block.
-                - The Mobility, Opportunity, and Volatility Statistics ([MOVS](https://www.census.gov/programs-surveys/ces/data/public-use-data/mobility-opportunity-volatility-statistics.html)):
-                This dataset contains the average income by race and gender.
-                - The [GENZ2018](https://www2.census.gov/geo/tiger/GENZ2018/shp/) is used to obtain the shapes for the states to make the map.
+                The data for this project comes from several sources:
+                - **TIGER2019**: Shapes for the census PUMAs and for state, as well as historical roads.
+                - **Public Use Microdata Areas (PUMAs)**: Contains most control variables.
                 - The [TIGER2023](https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/) is used to obtain the shapes for the census block for each individual state.
-                - Data Profile ACS 3-year estimates (DP03): From this dataset comes most of the control variables and the variables used to create the MOVS dataset
-                at a county level.
             '''),
         ], style={'width': '70%', 'margin': 'auto'})
 
