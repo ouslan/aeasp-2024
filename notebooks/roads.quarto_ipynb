@@ -1,0 +1,141 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Graph development\"\n",
+        "format:\n",
+        "  html:\n",
+        "    code-fold: true\n",
+        "jupyter: python3\n",
+        "---"
+      ],
+      "id": "29608fff"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import os \n",
+        "os.chdir('..')"
+      ],
+      "id": "245ea4a2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import polars as pl\n",
+        "import geopandas as gpd"
+      ],
+      "id": "235c7155",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "roads_df = gpd.read_file(\"data/interim/roads_2012_06.gpkg\", engine=\"pyogrio\")\n",
+        "puma = gpd.read_file(\"data/interim/puma_06.gpkg\", engine=\"pyogrio\")\n",
+        "tmp_puma = puma[(puma[\"geo_id\"] == \"0600101\")].copy().reset_index(drop=True)\n",
+        "clipped = roads_df.clip(tmp_puma['geometry'])"
+      ],
+      "id": "95599eb8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "base = tmp_puma.plot(color='white', edgecolor='black')\n",
+        "clipped.plot(ax=base, marker='o', color='red', markersize=5)"
+      ],
+      "id": "8acb79d2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "clipped.length.sum()"
+      ],
+      "id": "4bd72788",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "empty_df = [\n",
+        "  pl.Series(\"year\", [], dtype=pl.Int64),\n",
+        "  pl.Series(\"puma_id\", [], dtype=pl.String),\n",
+        "  pl.Series(\"leangth\", [], dtype=pl.Float64)\n",
+        "]\n",
+        "df = pl.DataFrame(empty_df)\n",
+        "puma2 = puma[puma[\"geo_id\"].str.startswith(\"06\")]\n",
+        "for pum in puma2[\"geo_id\"]:\n",
+        "    tmp = puma.loc[puma[\"geo_id\"] == pum]\n",
+        "    clipped = roads_df.clip(tmp['geometry'])\n",
+        "    leng = pl.DataFrame(\n",
+        "      {\n",
+        "        \"year\": 2012,\n",
+        "        \"puma_id\": pum,\n",
+        "        \"leangth\": clipped.length.sum()\n",
+        "      }\n",
+        "    )\n",
+        "    df = pl.concat([df, leng], how=\"vertical\")\n",
+        "print(df)"
+      ],
+      "id": "36ef41bf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "def process(roads, state_id, pumas_df):\n",
+        "  empty_df = [\n",
+        "              pl.Series(\"year\", [], dtype=pl.Int64),\n",
+        "              pl.Series(\"puma_id\", [], dtype=pl.String),\n",
+        "              pl.Series(\"leangth\", [], dtype=pl.Float64)\n",
+        "             ]\n",
+        "  df = pl.DataFrame(empty_df)\n",
+        "  pumas = pumas_df[pumas_df[\"geo_id\"].str.startswith(state_id)]\n",
+        "  for puma in pumas[\"geo_id\"]:\n",
+        "      tmp = pumas.loc[pumas[\"geo_id\"] == puma]\n",
+        "      clipped = roads.clip(tmp['geometry'])\n",
+        "      leng = pl.DataFrame(\n",
+        "        {\n",
+        "          \"year\": 2012,\n",
+        "          \"puma_id\": puma,\n",
+        "          \"leangth\": clipped.length.sum()\n",
+        "        }\n",
+        "      )\n",
+        "      df = pl.concat([df, leng], how=\"vertical\")\n",
+        "  return df"
+      ],
+      "id": "b6dbfa3f",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/coder/miniforge3/envs/mov/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

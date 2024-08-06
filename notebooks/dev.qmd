@@ -1,0 +1,26 @@
+```{python}
+import os
+os.chdir("..")
+```
+
+```{python}
+import pandas as pd
+import polars as pl
+import numpy as np
+import geopandas as gpd
+from src.data.data_process import DataProcess
+```
+
+```{python}
+df = pl.read_parquet("data/external/county_codes.parquet")
+df
+```
+
+```{python}
+acs = pl.read_parquet("data/processed/roads.parquet")
+acs
+```
+
+```{python}
+df = pl.read_parquet("data/processed/roads.parquet")
+df

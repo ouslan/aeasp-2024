@@ -1,4 +1,4 @@
-notebooks/
+earnotebooks/
 
 # Ignore all pkl files
 *.pkl
@@ -14,7 +14,11 @@ notebooks/
 data/raw/*.csv.gz
 data/shape_files/*.zip
 *.csv.gz
-*.zip
+
+# Exceptions
+!data/shape_files/states.zip
+!data/processed/blocks.parquet
+!data/processed/lodes.parquet
 
 # Ignore Python bytecode files
 *.pyc

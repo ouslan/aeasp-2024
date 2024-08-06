@@ -1,0 +1,198 @@
+---
+title: "Travel Time and Spatial Patterns in road Infrastructure"
+author: "Alejandro Ouslan"
+format:
+  revealjs:
+    logo: assets/logo-aeasp.jpeg
+    footer: "AEASP 2024"
+---
+
+## Research question
+
+```{python}
+from IPython.display import Markdown
+from tabulate import tabulate
+import pandas as pd
+import os 
+os.chdir('..')
+```
+
+- We are looking at the relationship between road length and average comute time on a particular puma
+- How does the changes in road lenth of a particular PUMA affect the average comute time of neighboring PUMAs?
+
+
+## Average Comute Time by PUMA 
+
+![](assets/us-map.png)
+
+## Average Comute Time for California
+
+![](assets/cali-map.png)
+
+## Methods 
+
+- 2351 PUMAs (statistical geographic areas containing no fewer than 100,000 people each.)
+- 8 years of data
+- 18808 observations
+- Spatial Lag Panel Model with Fixed Effects:
+$$y_{it} = \rho \sum_{j=1}^N w_{ij} y_{jt}  +  x_{it} \beta  +  \mu_i  +  e_{it}$$
+
+## Weights 
+
+![weights](assets/queens.png)
+
+## Results Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/all.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Pt.2
+```{python}
+
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Male Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/all-male.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Male Pt.2
+```{python}
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Female Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/all-female.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Female Pt.2
+```{python}
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/lag_table.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Pt.1
+```{python}
+
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Male Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/lag_table.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Male Pt.1
+```{python}
+
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Female Pt.1 
+```{python}
+
+df = pd.read_csv("data/processed/lag_table.csv")
+
+table = df[["name", "coef", "z_value"]].head(7).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Results Black Female Pt.2
+```{python}
+
+table = df[["name", "coef", "z_value"]].tail(6).values.tolist()
+
+Markdown(tabulate(
+    table,
+    headers=["Variable", "Coefficient", "z-Statistic"],
+    tablefmt="pipe"
+))
+```
+
+## Conclusion & clossing remarks

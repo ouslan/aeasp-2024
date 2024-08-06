@@ -1,5 +1,6 @@
-# get variables form the pums 
-- jwmnp=travel time to work
-- sex
-- st=state of residence
-- do a regresion by states to predict movs and then doit by county
+- remove missing for all acs
+- fix male data 
+- remove 0 for acs
+
+# regresion 
+run data for only californaia 
