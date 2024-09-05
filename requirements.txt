@@ -14,3 +14,4 @@ sqlalchemy==2.0.31
 geoalchemy2==0.15.1
 requests==2.32.3 
 cpi==2.0.2
+tqdm==4.66.5
