@@ -1,8 +1,7 @@
 from requests.exceptions import RequestException
-from urllib.request import urlretrieve
-from urllib.error import URLError
 from dotenv import load_dotenv
 import geopandas as gpd
+from tqdm import tqdm
 import polars as pl
 import requests
 import os
@@ -11,7 +10,7 @@ load_dotenv()
 class DataPull:
 
     def __init__(self, debug=False):
-        
+
         self.debug = debug
         self.key = os.environ.get('CENSUS_API_KEY')
         self.mov = self.pull_movs()
@@ -23,14 +22,14 @@ class DataPull:
         self.pull_pumas()
         self.pull_roads()
         self.pull_acs()
-    
+
     def pull_movs(self) -> pl.DataFrame:
-        
+
         self.pull_file("https://www2.census.gov/ces/movs/movs_st_main2005.csv","data/raw/movs.csv")
         return pl.read_csv("data/raw/movs.csv", ignore_errors=True)
-    
+
     def pull_state_codes(self) -> pl.DataFrame:
-        
+
         if not os.path.exists("data/external/state_codes.parquet"):
             codes = self.mov.select(pl.col("state_abbr").str.to_lowercase().unique())
             codes = codes.filter(pl.col("state_abbr") != "us")
@@ -40,9 +39,9 @@ class DataPull:
             if self.debug:
                 print("\033[0;36mPROCESS: \033[0m" + "Finished processing state_codes.parquet")
         return pl.read_parquet("data/external/state_codes.parquet")
-    
+
     def pull_county_codes(self) -> pl.DataFrame:
-        
+
         if not os.path.exists("data/external/county_codes.parquet"):
             codes = gpd.read_file("data/shape_files/counties.zip", engine="pyogrio")
             codes["county_id"] = codes["STATEFP"] + codes["COUNTYFP"]
@@ -52,31 +51,31 @@ class DataPull:
             if self.debug:
                 print("\033[0;36mPROCESS: \033[0m" + "Finished processing county_codes.parquet")
         return pl.read_parquet("data/external/county_codes.parquet")
-    
+
     def pull_states(self) -> None:
-        
+
         self.pull_file("https://www2.census.gov/geo/tiger/GENZ2019/shp/cb_2019_us_state_500k.zip", "data/shape_files/states.zip")
 
     def pull_counties(self) -> None:
-        
+
         self.pull_file("https://www2.census.gov/geo/tiger/TIGER2017/COUNTY/tl_2017_us_county.zip", "data/shape_files/counties.zip")
 
     def pull_blocks(self) -> None:
-        
+
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2023/TABBLOCK20/tl_2023_{str(state).zfill(2)}_tabblock20.zip"
             file_name = f"data/shape_files/block_{name}_{str(state).zfill(2)}.zip"
             self.pull_file(url, file_name)
-    
+
     def pull_pumas(self) -> None:
-        
+
         for state, name in self.codes.select(pl.col("fips", "state_name")).rows():
             url = f"https://www2.census.gov/geo/tiger/TIGER2019/PUMA/tl_2019_{str(state).zfill(2)}_puma10.zip"
             file_name = f"data/shape_files/puma_{name}_{str(state).zfill(2)}.zip"
             self.pull_file(url, file_name)
 
     def pull_roads(self) -> None:
-        
+
         for year in range(2012, 2020):
             for county_id, county_name in self.county_codes.select(pl.col("county_id", "NAME")).rows():
                 url = f"https://www2.census.gov/geo/tiger/TIGER{year}/ROADS/tl_{year}_{county_id}_roads.zip"
@@ -84,7 +83,7 @@ class DataPull:
                 self.pull_file(url, file_name)
 
     def pull_acs(self) -> None:
-        
+
         empty_df = [
                     pl.Series("JWMNP", [], dtype=pl.Int64),
                     pl.Series("SEX", [], dtype=pl.Int64),
@@ -144,24 +143,29 @@ class DataPull:
                     except RequestException as e:
                         print("\033[1;33mWARNING:  \033[0m" + f"Could not download ACS data for {name} {year} {e}")
                         continue
-                
+
                 acs.write_parquet(f"data/raw/acs_{year}.parquet")
-            
+
             if self.debug:
                 print("\033[0;32mINFO: \033[0m" + f"Finished downloading ACS data for {year}")
-    
-    def pull_file(self, url, filename) -> None:
+
+    def pull_file(self, url:str, filename:str, verify:bool=True) -> None:
         if os.path.exists(filename):
             if self.debug:
                 print("\033[0;36mNOTICE: \033[0m" + f"File {filename} already exists, skipping download")
         else:
-            try:
-                urlretrieve(url, filename)
-                if self.debug:
-                    print("\033[0;32mINFO: \033[0m" + f"Downloaded {filename}")
-            except URLError:
-                if self.debug:
-                    print("\033[1;33mWARNING:  \033[0m" + f"Could not download {filename}")
+            chunk_size = 10 * 1024 * 1024
+
+            with requests.get(url, stream=True, verify=verify) as response:
+                total_size = int(response.headers.get('content-length', 0))
+
+                with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024, desc='Downloading') as bar:
+                    with open(filename, 'wb') as file:
+                        for chunk in response.iter_content(chunk_size=chunk_size):
+                            if chunk:
+                                file.write(chunk)
+                                bar.update(len(chunk))  # Update the progress bar with the size of the chunk
+
 
 if __name__ == "__main__":
     DataPull(debug=True)

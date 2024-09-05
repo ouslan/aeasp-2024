@@ -16,7 +16,9 @@ dependencies:
   - sqlalchemy=2.0.31
   - geoalchemy2=0.15.1
   - nbformat=5.10.4
+  - requests=2.32.3 
   - pip:
       - geoarrow-rust-core==0.2.0
       - python-dotenv==1.0.1
       - pyogrio==0.8.0
+      - cpi==2.0.2 

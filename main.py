@@ -2,7 +2,7 @@ from src.data.data_pull import DataPull
 from src.data.data_process import DataProcess
 
 def main() -> None:
-    #DataPull(debug=True)
+    DataPull(debug=True)
     DataProcess(debug=True)
     #DAO()
 
